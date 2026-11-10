@@ -1,0 +1,12 @@
+{
+  "name": "wayground-script",
+  "version": "4.3.0",
+  "private": true,
+  "description": "Violentmonkey userscript for Wayground/Quizizz - split source, single-file build",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "verify": "node build.mjs && node --check \"Wayground Script.user.js\""
+  }
+}

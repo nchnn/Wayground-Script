@@ -1,0 +1,23 @@
+// ==UserScript==
+// @name         Wayground Script
+// @description  Wayground Script enhances quiz UI with answer assistance, focus protection, and re-enables copy, paste, and text selection; powered by AI.
+// @version      4.3.0
+// @author       Inchan
+// @license      GPLv3
+// @match        *://*.wayground.com/*
+// @match        *://*.quizizz.com/*
+// @icon         https://cf.quizizz.com/img/wayground/brand/favicon/favicon-32x32.ico
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_deleteValue
+// @grant        GM_listValues
+// @connect      generativelanguage.googleapis.com
+// @connect      api.openai.com
+// @connect      generativelanguage.googleapis.com
+// @connect      api.openai.com
+// @connect      api.groq.com
+
+// @downloadURL https://update.greasyfork.org/scripts/602640/Wayground%20Script.user.js
+// @updateURL https://update.greasyfork.org/scripts/602640/Wayground%20Script.meta.js
+// ==/UserScript==

@@ -1,0 +1,5 @@
+* text=auto eol=crlf
+
+# The shipped artifact is generated; keep its line endings stable so a rebuild
+# with no source change produces no diff.
+*.user.js text eol=crlf
