@@ -1,64 +1,59 @@
             <div class="main">
-                <div class="card card-wide title">
-                    <div style="display: flex; align-items: center;">
-                    <p class="text">Wayground Script</p>
-                        <div class="words">
-                            <span class="word text">auto</span>
-                            <span class="word text">simple</span>
-                            <span class="word text">easy</span>
-                            <span class="word text" aria-hidden="true">auto</span>
-                        </div>
+                <span id="quiz-name-display" style="display:none">${QUIZ_NAME}</span>
+                <span id="quiz-status-display" style="display:none">Searching answers...</span>
+                <span id="protection-status-display" style="display:none">Safe</span>
+
+                <!-- Vertical pill toolbar -->
+                <div class="toolbar-pill" id="toolbar-pill" style="display: none;" inert aria-hidden="true">
+                    <div class="drag-handle" id="toolbar-drag-handle" data-tooltip="Drag Toolbar" title="Drag Toolbar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="6" viewBox="0 0 16 6" fill="currentColor">
+                            <circle cx="3" cy="3" r="1.5"/>
+                            <circle cx="8" cy="3" r="1.5"/>
+                            <circle cx="13" cy="3" r="1.5"/>
+                        </svg>
                     </div>
+                    <button class="tb-btn" id="btn-answers" data-tooltip="Answers" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg>
+                    </button>
+                    <button class="tb-btn" id="card-protection" data-tooltip="Protection">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                        <span class="status-dot" id="protection-dot"></span>
+                    </button>
+                    <button class="tb-btn" id="toggleAns" data-tooltip="Show Answers">
+                        <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg class="eye-off-icon" style="display:none" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
+                    </button>
+                    <button class="tb-btn" id="btn-apikey" data-tooltip="AI Config">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                        <span class="status-dot ai-dot" id="main-ai-indicator"></span>
+                    </button>
+                    <button class="tb-btn" id="config" data-tooltip="Settings" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
 
-                <div id="btn-answers" class="card" style="text-align: center;">
-                    <p class="text" id="quiz-name-display" style="font-size: 14px;">${QUIZ_NAME}</p>
-                    <p class="subtextT" id="quiz-status-display">Searching answers...</p>
-                </div>
-
-                <div id="card-protection" class="card">
-                                    <p class="text" style="margin-left: 5px; font-size: 14px;">Protection</p>
-                    <svg class="shield" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="m438-338 226-226-57-57-169 169-84-84-57 57 141 141Zm42 258q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/></svg>
-                    <p class="subtextT" id="protection-status-display" style="color: #39be44;">Safe</p>
-                </div>
-
-                <div id="toggleAns" class="card">
-                    <p class="text" style="margin-left: 5px;">Show Answers</p>
-                    <label class="switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                        </label>
-                </div>
-
-                <div id="btn-apikey" class="card" style="position: relative;">
-                    <p class="text" style="margin-left: 5px;">Api key</p>
-                    <p class="subtextT"> click for configuration</p>
-                    <div id="main-ai-indicator" style="position: absolute; top: 12px; right: 15px; width: 8px; height: 8px; border-radius: 50%; background-color: gray; box-shadow: 0 0 5px gray;" title="AI is disabled"></div>
-                </div>
-
-                <a id="greasy" href="https://greasyfork.org/es/users/1600509-byoscarpine" class="card" target="_blank" rel="noopener noreferrer">
-                    <svg class="greasy" height="30px" width="30px" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5.89 2.227a.28.28 0 0 1 .266.076l5.063 5.062c.54.54.509 1.652-.031 2.192l8.771 8.77c1.356 1.355-.36 3.097-1.73 1.728l-8.772-8.77c-.54.54-1.651.571-2.191.031l-5.063-5.06c-.304-.304.304-.911.608-.608l3.714 3.713L7.59 8.297 3.875 4.582c-.304-.304.304-.911.607-.607l3.715 3.714 1.067-1.066L5.549 2.91c-.228-.228.057-.626.342-.683ZM12 0C5.374 0 0 5.375 0 12s5.374 12 12 12c6.625 0 12-5.375 12-12S18.625 0 12 0Z"/>
+                <!-- Trigger icon (separate, below pill) -->
+                <div class="trigger-wrap" id="toggle-menu-btn" data-tooltip="Toggle Toolbar" role="button" aria-label="Toggle Toolbar" tabindex="0">
+                    <svg class="trigger-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path class="shield-path" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                        <path class="shoulders-path" d="M6.376 18.91a6 6 0 0 1 11.249.003"/>
+                        <circle class="head-circle" cx="12" cy="11" r="4"/>
                     </svg>
-                </a>
-
-                <a id="github" href="https://github.com/ByOscarPINE" class="card" target="_blank" rel="noopener noreferrer">
-                    <svg height="30px" width="30px" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" class="github">
-                        <path d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"></path>
-                    </svg>
-                </a>
-
-                <div id="config" class="card">
-                    <svg class="settings" xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/></svg>
                 </div>
 
-                <div class="settings_menu">
-                    <div class="menu-header">
-                        <div class="menu-title-wrapper">
-                            <p class="text menu-title">Settings</p>
-                            <span id="script-version" class="badge-version">VERSION 1.0.0</span>
+                <!-- Tooltip element -->
+                <div class="tooltip" id="tooltip"></div>
+
+                <!-- Panel overlays -->
+                <div class="settings_menu" inert aria-hidden="true">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <span class="panel-title">Settings</span>
+                            <span id="script-version" class="panel-badge">VERSION 1.0.0</span>
                         </div>
-                        <svg id="close-settings" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                        <button class="panel-close-btn" id="close-settings" data-tooltip="Close" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
                     </div>
 
                     <div id="btn-apikeyconfig" class="settings-item">
@@ -119,23 +114,25 @@
                         </label>
                     </div>
 
-                    <!-- Direct Hide UI Button -->
                     <div id="btn-hide-ui" class="settings-item" style="cursor: pointer; justify-content: center; background: rgba(0, 0, 0, 0.05); border-color: rgba(150, 150, 150, 0.3);">
                         <span class="text" style="font-weight: bold;">Hide UI (Stealth Mode)</span>
                     </div>
-                    <!-- PASTE HERE -->
                     <div id="btn-clear-cache" class="settings-item" style="cursor: pointer; justify-content: center; background: rgba(229, 57, 53, 0.1); border-color: rgba(229, 57, 53, 0.3);">
-    <span class="text" style="color: #e53935 !important; font-weight: bold;">Clear & Re-Solve Now</span>
+    <span class="text" style="color: #e53935 !important; font-weight: bold;">Clear &amp; Re-Solve Now</span>
 </div>
 
                     <div id="btn-terms" class="card-track btn-outline">
-                        <span class="text">Terms & Conditions</span>
+                        <span class="text">Terms &amp; Conditions</span>
                     </div>
                 </div>
-                <div class="terms_menu">
-                    <div class="menu-header">
-                        <p class="text menu-title">Terms & Conditions</p>
-                        <svg id="close-terms" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                <div class="terms_menu" inert aria-hidden="true">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <span class="panel-title">Terms &amp; Conditions</span>
+                        </div>
+                        <button class="panel-close-btn" id="close-terms" data-tooltip="Close" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
                     </div>
                     <div class="terms-content">
                         <p><strong>1. Educational Use:</strong> This script is a proof of concept for research purposes only.</p>
@@ -145,10 +142,14 @@
                     </div>
                 </div>
 
-                <div class="apikey_menu">
-                    <div class="menu-header">
-                        <p class="text menu-title">API Key</p>
-                        <svg id="close-apikey" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                <div class="apikey_menu" inert aria-hidden="true">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <span class="panel-title">AI Configuration</span>
+                        </div>
+                        <button class="panel-close-btn" id="close-apikey" data-tooltip="Close" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
                     </div>
                     <div class="apikey-content" style="width: 100%; box-sizing: border-box; overflow-y: auto; max-height: 400px; padding-right: 5px;">
                         <div class="settings-item" style="margin-bottom: 10px;">
@@ -194,33 +195,35 @@
                     </div>
                 </div>
 
-                <div class="answers_menu">
-                    <div class="menu-header">
-                        <p class="text menu-title">Answers</p>
-                        <svg id="close-answers" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                <div class="answers_menu" inert aria-hidden="true">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-header-icon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg>
+                            <span class="panel-title">Answers</span>
+                            <span id="answers-count-badge" class="panel-badge">0</span>
+                        </div>
+                        <button class="panel-close-btn" id="close-answers" data-tooltip="Close" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
                     </div>
-                    <div style="margin-bottom: 10px; width: 100%;">
+
+                    <div class="answers-search-wrap">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                         <input
                             type="text"
                             id="search-input"
-                            placeholder="Buscar pregunta o respuesta..."
-                            style="width: 100%; padding: 6px 10px; box-sizing: border-box; border: 1px solid #444; border-radius: 4px; background: var(--main-color); color: var(--secondary-color); font-size: 13px;"
+                            class="answers-search-input"
+                            placeholder="Search questions or answers..."
+                            spellcheck="false"
+                            autocomplete="off"
                         />
                     </div>
 
-                    <div class="answers-content" id="answers-list" style="width: 100%; box-sizing: border-box; overflow-y: auto; max-height: 400px; scrollbar-width: none; aspect-ratio: 1 / 2;">
-                        <p class="subtext" style="text-align: center; ">No answers found yet.</p>
-                    </div>
-                </div>
-              <div class="main_back">
-                    <div class="cardBa">
-                        <div class="loader-container">
-                            <div class="loader-shadow"></div>
-                            <div class="loader-box-wrap">
-                                <div class="loader-box">
-                                    <svg class="menu" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Z"/></svg>
-                                </div>
-                            </div>
+                    <div class="answers-content" id="answers-list">
+                        <div class="answers-empty-state">
+                            <svg class="answers-empty-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg>
+                            <p class="answers-empty-title">No answers yet</p>
+                            <p class="answers-empty-sub">Answers will appear here once a quiz begins</p>
                         </div>
                     </div>
                 </div>

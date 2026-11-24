@@ -7,15 +7,14 @@
     let ANTI_CHEAT = false;
     let TYPE_QUIZ = '';
     let CLEANED_QUESTIONS = null;
-    let savedQuestions = null;        // FIX: was missing, causing ReferenceError in strict mode
-    let CACHED_RESULTS = null;       // FIX: declare globally
-    let isAnsVisible = true;         // FIX: global state for answer visibility
+    let savedQuestions = null;
+    let CACHED_RESULTS = null;
+    let isAnsVisible = true;
     let AUTO_CLICK = GM_getValue("autoClickEnabled", false);
-    let AUTO_CLICK_DELAY = GM_getValue("autoClickDelay", 1000); // 1000ms default delay
-    let hasAutoClickedCurrent = false; // Prevents spam clicking the same question
+    let AUTO_CLICK_DELAY = GM_getValue("autoClickDelay", 1000);
+    let hasAutoClickedCurrent = false;
     let NOTIFICATIONS_ENABLED = GM_getValue("notificationsEnabled", true);
 
-    // All shortcuts default to "None" (safe crash-proof initialization)
     let rawHotkeys = GM_getValue("customHotkeys", null);
     if (!rawHotkeys || typeof rawHotkeys !== 'object') {
         rawHotkeys = {};

@@ -1,5 +1,4 @@
     async function solveQuizWithGemini(questionsJsonObject) {
-        // Uses Google's official rolling alias for latest high-throughput Flash-Lite
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${API_KEY}`;
 
         const systemInstruction = `

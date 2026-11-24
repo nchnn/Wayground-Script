@@ -10,7 +10,6 @@
 
         if (stems.length === 0) return null;
 
-        // Hash the question stems together to create a permanent signature for this test
         const signature = stems.slice(0, 6).join(':::');
         let hash = 0;
         for (let i = 0; i < signature.length; i++) {
@@ -37,7 +36,6 @@
         const results = {};
         if (!questions || typeof questions !== 'object') return results;
 
-        // Supports both Array (savedQuestions) and Object (ROOM_DATA.questions)
         const qList = Array.isArray(questions) ? questions : Object.values(questions);
 
         qList.forEach(q => {
@@ -45,22 +43,47 @@
             const qText = stripHtml(rawQ);
             if (!qText) return;
 
+            // Check if it's a match, classification, or order question first
+            if (typeof formatMatchOrOrderAnswer === 'function') {
+                const matchAns = formatMatchOrOrderAnswer(q);
+                if (matchAns) {
+                    results[qText] = matchAns;
+                    return;
+                }
+            }
+
             const answer = q.structure?.answer !== undefined ? q.structure.answer : q.answer;
-            const options = (q.structure?.options || q.options || []).map((o, idx) => ({
-                id: String(o.id || o._id || idx),
-                text: stripHtml(o.text || '')
-            }));
+            const options = (q.structure?.options || q.options || []).map((o, idx) => {
+                let optText = stripHtml(o.text || o.value || o.query?.text || '');
+                if (!optText) {
+                    const hasMedia = o.media && (Array.isArray(o.media) ? o.media.length > 0 : Boolean(o.media.url || o.media.id));
+                    if (hasMedia) optText = `Image #${idx + 1}`;
+                }
+                return {
+                    id: String(o.id || o._id || idx),
+                    text: optText
+                };
+            });
 
             let ansText = "Answer not found";
             if (answer !== undefined && answer !== null) {
-                if (Array.isArray(answer) && answer[0] && answer[0].text) {
-                    ansText = answer.map(a => a.text).join(" | ");
+                if (answer === -1) {
+                    ansText = "Any Answer / Poll (All choices accepted)";
                 } else {
                     const targetIndices = Array.isArray(answer) ? answer : [answer];
                     const matchedTexts = options
                         .filter((opt, idx) => targetIndices.some(t => String(t) === String(opt.id) || String(t) === String(idx)))
-                        .map(opt => opt.text);
-                    if (matchedTexts.length > 0) ansText = matchedTexts.join(" | ");
+                        .map(opt => opt.text)
+                        .filter(t => t && t.trim().length > 0);
+
+                    if (matchedTexts.length > 0) {
+                        ansText = matchedTexts.join(" | ");
+                    } else {
+                        const extracted = typeof extractAnswerText === 'function' ? extractAnswerText(answer, options) : '';
+                        if (extracted && extracted !== '[object Object]' && extracted.trim().length > 0) {
+                            ansText = extracted;
+                        }
+                    }
                 }
             }
             results[qText] = ansText;

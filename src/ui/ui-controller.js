@@ -1,4 +1,5 @@
     let shadow = null;
+    let renderAnswersList = () => {};
 
     function toLoad() {
         try {
@@ -23,27 +24,122 @@
             const searchInput = shadow.querySelector('#search-input');
             const answersList = shadow.querySelector('#answers-list');
 
+            function escapeHtml(str) {
+                if (typeof str !== 'string') {
+                    if (typeof str === 'object' && str !== null) {
+                        try { str = JSON.stringify(str); } catch (e) { str = String(str); }
+                    } else {
+                        str = String(str ?? '');
+                    }
+                }
+                return str.replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(/"/g, '&quot;')
+                          .replace(/'/g, '&#039;');
+            }
+
+            renderAnswersList = function(answersMap, source = 'OFFICIAL') {
+                const listEl = shadow ? shadow.querySelector('#answers-list') : null;
+                const countBadge = shadow ? shadow.querySelector('#answers-count-badge') : null;
+                if (!listEl) return;
+
+                if (!answersMap || Object.keys(answersMap).length === 0) {
+                    listEl.innerHTML = `
+                        <div class="answers-empty-state">
+                            <svg class="answers-empty-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13H8"/><path d="M16 13h-2"/><path d="M10 17H8"/><path d="M16 17h-2"/></svg>
+                            <p class="answers-empty-title">No answers yet</p>
+                            <p class="answers-empty-sub">Answers will appear here once a quiz begins</p>
+                        </div>
+                    `;
+                    if (countBadge) countBadge.textContent = '0';
+                    return;
+                }
+
+                const entries = Object.entries(answersMap);
+                if (countBadge) countBadge.textContent = String(entries.length);
+
+                listEl.innerHTML = entries.map(([question, answer], idx) => {
+                    const cleanAnswer = (typeof extractAnswerText === 'function' ? extractAnswerText(answer) : '') || answer;
+                    const displayAns = (cleanAnswer && cleanAnswer !== '[object Object]') ? cleanAnswer : 'Answer not found';
+                    return `
+                    <div class="answer-item" data-index="${idx}">
+                        <div class="answer-header-row">
+                            <span class="answer-q-tag">Q${idx + 1}</span>
+                            <span class="answer-source-tag">${escapeHtml(source)}</span>
+                        </div>
+                        <p class="answer-question-text">${escapeHtml(question)}</p>
+                        <div class="answer-divider"></div>
+                        <div class="answer-body-row">
+                            <span class="answer-pill-label">ANS</span>
+                            <p class="answer-val-text">${escapeHtml(displayAns)}</p>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                listEl.querySelectorAll('.answer-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const isSel = item.classList.contains('selected');
+                        listEl.querySelectorAll('.answer-item.selected').forEach(el => el.classList.remove('selected'));
+                        if (!isSel) {
+                            item.classList.add('selected');
+                            const val = item.querySelector('.answer-val-text')?.textContent || '';
+                            if (val && navigator.clipboard) {
+                                navigator.clipboard.writeText(val).then(() => {
+                                    showNotification("Copied answer to clipboard!", "#39be44");
+                                }).catch(() => {});
+                            }
+                        }
+                    });
+                });
+
+                if (searchInput && searchInput.value) {
+                    searchInput.dispatchEvent(new Event('input'));
+                }
+            };
+
             if (searchInput && answersList) {
                 searchInput.addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase().trim();
                     const items = answersList.querySelectorAll('.answer-item');
+                    let visibleCount = 0;
 
                     items.forEach(item => {
                         const textContent = item.textContent.toLowerCase();
-
-                        if (textContent.includes(searchTerm)) {
-                            item.style.display = 'block';
-                        } else {
-                            item.style.display = 'none';
-                        }
+                        const matches = !searchTerm || textContent.includes(searchTerm);
+                        item.style.display = matches ? 'flex' : 'none';
+                        if (matches) visibleCount++;
                     });
+
+                    let noMatchEl = answersList.querySelector('.answers-no-match');
+                    if (searchTerm && visibleCount === 0 && items.length > 0) {
+                        if (!noMatchEl) {
+                            noMatchEl = document.createElement('div');
+                            noMatchEl.className = 'answers-no-match';
+                            noMatchEl.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                <p class="answers-empty-title">No matching answers</p>
+                                <p class="answers-empty-sub">Try searching with different keywords</p>
+                            `;
+                            answersList.appendChild(noMatchEl);
+                        }
+                        noMatchEl.style.display = 'flex';
+                    } else if (noMatchEl) {
+                        noMatchEl.style.display = 'none';
+                    }
+
+                    const countBadge = shadow.querySelector('#answers-count-badge');
+                    if (countBadge && items.length > 0) {
+                        countBadge.textContent = searchTerm ? `${visibleCount}/${items.length}` : `${items.length}`;
+                    }
                 });
             }
 
             const configBtn = shadow.querySelector('#config');
             const closeSettings = shadow.querySelector('#close-settings');
             const settingsMenu = shadow.querySelector('.settings_menu');
-            const cards = shadow.querySelectorAll('.card, .card-track');
+            const cards = shadow.querySelectorAll('.tb-btn');
             const colorPicker = shadow.querySelector('#color-picker');
             const termsBtn = shadow.querySelector('#btn-terms');
             const closeTerms = shadow.querySelector('#close-terms');
@@ -55,89 +151,458 @@
             const btnAnswers = shadow.querySelector('#btn-answers');
             const closeAnswers = shadow.querySelector('#close-answers');
             const answersMenu = shadow.querySelector('.answers_menu');
-            const toggleMenu = (open) => settingsMenu?.classList.toggle('open', open);
-            const toggleTerms = (open) => termsMenu?.classList.toggle('open', open);
-            const toggleApikey = (open) => apikeyMenu?.classList.toggle('open', open);
-            const toggleAnswers = (open) => answersMenu?.classList.toggle('open', open);
+
+            function setPanelState(panelEl, open, triggerBtnEl) {
+                if (!panelEl) return;
+                panelEl.classList.toggle('open', open);
+                panelEl.inert = !open;
+                if (open) {
+                    panelEl.removeAttribute('aria-hidden');
+                    if (triggerBtnEl) {
+                        triggerBtnEl.classList.add('active');
+                        positionPanel(panelEl, triggerBtnEl);
+                    }
+                } else {
+                    panelEl.setAttribute('aria-hidden', 'true');
+                    if (triggerBtnEl) triggerBtnEl.classList.remove('active');
+                    if (panelEl.contains(document.activeElement)) document.activeElement.blur();
+                    if (shadow && panelEl.contains(shadow.activeElement)) shadow.activeElement.blur();
+                }
+            }
+
+            const toggleMenu = (open) => setPanelState(settingsMenu, open, configBtn);
+            const toggleTerms = (open) => setPanelState(termsMenu, open, configBtn);
+            const toggleApikey = (open) => setPanelState(apikeyMenu, open, apikeyBtn);
+            const toggleAnswers = (open) => setPanelState(answersMenu, open, btnAnswers);
 
             let isDragging = false;
-            let startX, startY;
+            let isPointerDown = false;
+            let dragStartX = 0;
+            let dragStartY = 0;
+            let initialToolbarX = 0;
+            let initialToolbarY = 0;
+            let currentX = null;
+            let currentY = null;
+
             const dragTarget = typeof shadow !== 'undefined' && shadow.host ? shadow.host : shadow.querySelector('.main');
 
-            if (dragTarget && (!dragTarget.style.position || dragTarget.classList.contains('main'))) {
+            if (dragTarget) {
                 dragTarget.style.position = 'fixed';
-                dragTarget.style.bottom = '10px';
-                dragTarget.style.right = '10px';
                 dragTarget.style.zIndex = '99999';
             }
 
-            let initialRight, initialBottom;
+            function updateMenuDirection() {
+                if (!main) return;
+                const pillH = toolbarPill ? (toolbarPill.offsetHeight || 240) : 240;
+                const shouldOpenBelow = (currentY !== null && currentY < (pillH + 16));
+                main.classList.toggle('open-below', shouldOpenBelow);
+            }
 
-            dragTarget?.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.settings_menu, .terms_menu, .apikey_menu, .shortcuts_menu, input, label, a, button')) return;
+            function clampToolbarToViewport() {
+                if (!dragTarget) return;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const MARGIN = 8;
+                const maxLeft = Math.max(MARGIN, vw - 42 - MARGIN);
+                const maxTop = Math.max(MARGIN, vh - 42 - MARGIN);
 
-                startX = e.clientX;
-                startY = e.clientY;
+                if (currentX === null || currentY === null) {
+                    const rect = dragTarget.getBoundingClientRect();
+                    currentX = rect.left || (vw - 42 - 16);
+                    currentY = rect.top || (vh - 42 - 16);
+                }
 
-                const computed = window.getComputedStyle(dragTarget);
-                initialRight = parseInt(computed.right) || 0;
-                initialBottom = parseInt(computed.bottom) || 0;
+                currentX = Math.max(MARGIN, Math.min(currentX, maxLeft));
+                currentY = Math.max(MARGIN, Math.min(currentY, maxTop));
 
-                function onMouseMove(moveEvent) {
-                    const dx = startX - moveEvent.clientX;
-                    const dy = startY - moveEvent.clientY;
+                dragTarget.style.left = Math.round(currentX) + 'px';
+                dragTarget.style.top = Math.round(currentY) + 'px';
+                dragTarget.style.right = 'auto';
+                dragTarget.style.bottom = 'auto';
 
-                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                updateMenuDirection();
+                repositionOpenPanels();
+            }
+
+            function initToolbarPosition() {
+                if (!dragTarget) return;
+                const savedPos = GM_getValue("toolbarPos", null);
+                const w = 42;
+                const h = 42;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+
+                if (savedPos && typeof savedPos.x === 'number' && typeof savedPos.y === 'number') {
+                    currentX = savedPos.x;
+                    currentY = savedPos.y;
+                } else {
+                    currentX = vw - w - 16;
+                    currentY = vh - h - 16;
+                }
+                clampToolbarToViewport();
+            }
+
+            function onPointerDown(e) {
+                if (isPointerDown) return;
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+                const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+                const rawTarget = (path.length > 0 && path[0] instanceof Element) ? path[0] : e.target;
+                const targetEl = (rawTarget instanceof Element) ? rawTarget : (rawTarget?.parentElement || null);
+                if (!targetEl) return;
+
+                const interactive = targetEl.closest(
+                    '.settings_menu, .terms_menu, .apikey_menu, .answers_menu, .tb-btn, input, select, textarea, label, a, button, .panel-close-btn, .stepper-btn'
+                );
+                if (interactive) return;
+
+                const draggable = targetEl.closest('.drag-handle, .toolbar-pill, .trigger-wrap');
+                if (!draggable) return;
+
+                isPointerDown = true;
+                isDragging = false;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+
+                if (typeof currentX === 'number' && typeof currentY === 'number') {
+                    initialToolbarX = currentX;
+                    initialToolbarY = currentY;
+                } else {
+                    const rect = dragTarget.getBoundingClientRect();
+                    initialToolbarX = rect.left;
+                    initialToolbarY = rect.top;
+                }
+
+                window.addEventListener('pointermove', onPointerMove, { passive: false });
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!isPointerDown) return;
+
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+
+                if (!isDragging) {
+                    if (Math.hypot(dx, dy) >= 4) {
                         isDragging = true;
-                        dragTarget.style.right = (initialRight + dx) + 'px';
-                        dragTarget.style.bottom = (initialBottom + dy) + 'px';
+                        document.body.style.userSelect = 'none';
+                        document.body.style.webkitUserSelect = 'none';
                         dragTarget.style.cursor = 'grabbing';
+                        hideTooltip();
+                    } else {
+                        return;
                     }
                 }
 
-                function onMouseUp() {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    dragTarget.style.cursor = '';
-                    setTimeout(() => { isDragging = false; }, 50);
-                }
+                e.preventDefault();
 
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const MARGIN = 8;
 
-            dragTarget?.addEventListener('click', (e) => {
+                let newX = initialToolbarX + dx;
+                let newY = initialToolbarY + dy;
+
+                const maxLeft = Math.max(MARGIN, vw - 42 - MARGIN);
+                const maxTop = Math.max(MARGIN, vh - 42 - MARGIN);
+
+                newX = Math.max(MARGIN, Math.min(newX, maxLeft));
+                newY = Math.max(MARGIN, Math.min(newY, maxTop));
+
+                currentX = newX;
+                currentY = newY;
+
+                dragTarget.style.left = Math.round(newX) + 'px';
+                dragTarget.style.top = Math.round(newY) + 'px';
+                dragTarget.style.right = 'auto';
+                dragTarget.style.bottom = 'auto';
+
+                updateMenuDirection();
+                repositionOpenPanels();
+            }
+
+            function onPointerUp(e) {
+                if (!isPointerDown) return;
+                isPointerDown = false;
+
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                window.removeEventListener('pointercancel', onPointerUp);
+
+                document.body.style.userSelect = '';
+                document.body.style.webkitUserSelect = '';
+                dragTarget.style.cursor = '';
+
                 if (isDragging) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            }, true);
+                    GM_setValue("toolbarPos", { x: currentX, y: currentY });
 
-            configBtn?.addEventListener('click', () => {
+                    const swallowClick = (clickEvt) => {
+                        clickEvt.preventDefault();
+                        clickEvt.stopPropagation();
+                        clickEvt.stopImmediatePropagation();
+                        window.removeEventListener('click', swallowClick, true);
+                        if (shadow) shadow.removeEventListener('click', swallowClick, true);
+                    };
+                    window.addEventListener('click', swallowClick, true);
+                    if (shadow) shadow.addEventListener('click', swallowClick, true);
+
+                    setTimeout(() => {
+                        isDragging = false;
+                    }, 100);
+                }
+            }
+
+            shadow?.addEventListener('pointerdown', onPointerDown);
+            if (dragTarget && dragTarget !== shadow) {
+                dragTarget.addEventListener('pointerdown', onPointerDown);
+            }
+
+            const main = shadow.querySelector('.main');
+            const toggleMenuBtn = shadow.querySelector('#toggle-menu-btn');
+            const toolbarPill = shadow.querySelector('#toolbar-pill');
+            const toolbarDragHandle = shadow.querySelector('#toolbar-drag-handle');
+            toggleMenuBtn?.addEventListener('pointerdown', onPointerDown);
+            toolbarDragHandle?.addEventListener('pointerdown', onPointerDown);
+            toolbarPill?.addEventListener('pointerdown', onPointerDown);
+            let idleTimer = null;
+            let pillTransitionTimer = null;
+
+            function closeAllSubmenus() {
+                toggleMenu(false);
                 toggleTerms(false);
                 toggleApikey(false);
                 toggleAnswers(false);
-                toggleMenu(true);
+                configBtn?.classList.remove('active');
+                apikeyBtn?.classList.remove('active');
+                btnAnswers?.classList.remove('active');
+            }
+
+            function setMainOpen(open) {
+                clearTimeout(pillTransitionTimer);
+                if (open) {
+                    closeAllSubmenus();
+                    updateMenuDirection();
+                    if (toolbarPill) {
+                        toolbarPill.style.display = 'flex';
+                        toolbarPill.inert = false;
+                        toolbarPill.removeAttribute('aria-hidden');
+                        void toolbarPill.offsetHeight;
+                    }
+                    main.classList.add('menu-open');
+                } else {
+                    main.classList.remove('menu-open');
+                    if (toolbarPill) {
+                        toolbarPill.inert = true;
+                        toolbarPill.setAttribute('aria-hidden', 'true');
+                        if (toolbarPill.contains(document.activeElement)) document.activeElement.blur();
+                        if (shadow && toolbarPill.contains(shadow.activeElement)) shadow.activeElement.blur();
+                    }
+                    closeAllSubmenus();
+                    hideTooltip();
+                    pillTransitionTimer = setTimeout(() => {
+                        if (!main.classList.contains('menu-open') && toolbarPill) {
+                            toolbarPill.style.display = 'none';
+                        }
+                    }, 240);
+                }
+                resetIdleTimer();
+            }
+
+            function resetIdleTimer() {
+                main.classList.remove('idle');
+                clearTimeout(idleTimer);
+                const panelOpen = shadow.querySelector('.settings_menu.open, .terms_menu.open, .apikey_menu.open, .answers_menu.open');
+                if (!panelOpen && main.classList.contains('menu-open')) {
+                    idleTimer = setTimeout(() => main.classList.add('idle'), 3000);
+                }
+            }
+
+            // Smart panel positioning with strict viewport boundaries
+            function positionPanel(panelEl, triggerBtnEl) {
+                if (!panelEl || !triggerBtnEl) return;
+                const isAnswers = panelEl.classList.contains('answers_menu');
+                const GAP = 10;
+                const MARGIN = 10;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+
+                const preferredW = isAnswers ? 320 : 290;
+                const panelW = Math.min(preferredW, vw - 2 * MARGIN);
+                panelEl.style.width = Math.round(panelW) + 'px';
+
+                const triggerRect = triggerBtnEl.getBoundingClientRect();
+                const preferredH = 480;
+                const maxAvailableH = vh - 2 * MARGIN;
+
+                // Vertical space: priority 1 downward, priority 2 upward
+                const spaceBelow = vh - triggerRect.top - MARGIN;
+                const spaceAbove = triggerRect.bottom - MARGIN;
+
+                let useTop;
+                let panelH;
+
+                if (spaceBelow >= Math.min(preferredH, 220)) {
+                    useTop = triggerRect.top;
+                    panelH = Math.min(preferredH, spaceBelow);
+                } else if (spaceAbove >= Math.min(preferredH, 220)) {
+                    panelH = Math.min(preferredH, spaceAbove);
+                    useTop = triggerRect.bottom - panelH;
+                } else {
+                    useTop = MARGIN;
+                    panelH = maxAvailableH;
+                }
+
+                useTop = Math.max(MARGIN, Math.min(useTop, vh - MARGIN - panelH));
+                panelEl.style.top = Math.round(useTop) + 'px';
+                panelEl.style.maxHeight = Math.round(panelH) + 'px';
+
+                // Horizontal: place to the left of trigger by default
+                let panelLeft = triggerRect.left - panelW - GAP;
+                if (panelLeft < MARGIN) {
+                    const rightCandidate = triggerRect.right + GAP;
+                    if (rightCandidate + panelW <= vw - MARGIN) {
+                        panelLeft = rightCandidate;
+                    } else {
+                        panelLeft = Math.max(MARGIN, Math.min(panelLeft, vw - panelW - MARGIN));
+                    }
+                }
+                panelLeft = Math.max(MARGIN, Math.min(panelLeft, vw - panelW - MARGIN));
+
+                panelEl.style.left = Math.round(panelLeft) + 'px';
+                panelEl.style.right = 'auto';
+                panelEl.style.bottom = 'auto';
+            }
+
+            function repositionOpenPanels() {
+                const panelMap = [
+                    { panel: settingsMenu, trigger: configBtn },
+                    { panel: termsMenu, trigger: configBtn },
+                    { panel: apikeyMenu, trigger: apikeyBtn },
+                    { panel: answersMenu, trigger: btnAnswers },
+                ];
+                panelMap.forEach(({ panel, trigger }) => {
+                    if (panel && panel.classList.contains('open')) {
+                        positionPanel(panel, trigger);
+                    }
+                });
+            }
+
+            window.addEventListener('resize', () => {
+                clampToolbarToViewport();
+                repositionOpenPanels();
             });
-            closeSettings?.addEventListener('click', () => toggleMenu(false));
-            settingsMenu?.addEventListener('mouseleave', () => toggleMenu(false));
-            termsBtn?.addEventListener('click', () => {
+
+            toggleMenuBtn?.addEventListener('click', (e) => {
+                if (isDragging) return;
+                e.stopPropagation();
+                const willOpen = !main.classList.contains('menu-open');
+                setMainOpen(willOpen);
+            });
+
+            // Idle fade
+            main.addEventListener('mouseenter', resetIdleTimer);
+            main.addEventListener('mouseleave', () => {
+                if (main.classList.contains('menu-open')) {
+                    idleTimer = setTimeout(() => main.classList.add('idle'), 3000);
+                }
+            });
+
+            // Tooltip logic with full hidden & drag protection
+            const tooltipEl = shadow.querySelector('#tooltip');
+            let tooltipTimer = null;
+
+            function hideTooltip() {
+                clearTimeout(tooltipTimer);
+                if (tooltipEl) {
+                    tooltipEl.classList.remove('visible');
+                }
+            }
+
+            function bindTooltips() {
+                shadow.querySelectorAll('[data-tooltip]').forEach(el => {
+                    el.addEventListener('mouseenter', () => {
+                        hideTooltip();
+                        if (isDragging) return;
+                        if (main.classList.contains('stealth-hidden')) return;
+
+                        const isPillChild = el.closest('.toolbar-pill');
+                        if (isPillChild && !main.classList.contains('menu-open')) return;
+
+                        const panel = el.closest('.settings_menu, .terms_menu, .apikey_menu, .answers_menu');
+                        if (panel && !panel.classList.contains('open')) return;
+
+                        const text = el.getAttribute('data-tooltip');
+                        if (!text || !tooltipEl) return;
+
+                        tooltipTimer = setTimeout(() => {
+                            if (isDragging || main.classList.contains('stealth-hidden')) return;
+                            tooltipEl.textContent = text;
+                            tooltipEl.classList.add('visible');
+
+                            const rect = el.getBoundingClientRect();
+                            const tw = tooltipEl.offsetWidth || 50;
+                            const th = tooltipEl.offsetHeight || 22;
+
+                            let top = rect.top + (rect.height - th) / 2;
+                            let left = rect.left - tw - 8;
+
+                            if (left < 6) {
+                                left = rect.right + 8;
+                            }
+                            if (left + tw > window.innerWidth - 6) {
+                                left = window.innerWidth - tw - 6;
+                            }
+                            if (top < 6) top = 6;
+                            if (top + th > window.innerHeight - 6) top = window.innerHeight - th - 6;
+
+                            tooltipEl.style.top = Math.round(top) + 'px';
+                            tooltipEl.style.left = Math.round(left) + 'px';
+                        }, 250);
+                    });
+                    el.addEventListener('mouseleave', hideTooltip);
+                });
+            }
+            bindTooltips();
+
+            document.addEventListener('click', (e) => {
+                if (shadow.host && !shadow.host.contains(e.target)) {
+                    setMainOpen(false);
+                }
+            });
+
+            configBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!main.classList.contains('menu-open')) setMainOpen(true);
+                const wasOpen = settingsMenu?.classList.contains('open');
+                closeAllSubmenus();
+                if (!wasOpen) {
+                    toggleMenu(true);
+                }
+                resetIdleTimer();
+            });
+            closeSettings?.addEventListener('click', (e) => {
+                e.stopPropagation();
                 toggleMenu(false);
-                toggleApikey(false);
-                toggleAnswers(false);
-                toggleTerms(true);
+                resetIdleTimer();
             });
-            closeTerms?.addEventListener('click', () => toggleTerms(false));
-            termsMenu?.addEventListener('mouseleave', () => toggleTerms(false));
-            // Clear Cache Button Event
-            // Live Re-Solve Handler (No reload needed)
-            // Live Re-Solve Handler with Full Error Recovery
+            termsBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllSubmenus();
+                toggleTerms(true);
+                resetIdleTimer();
+            });
+            closeTerms?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleTerms(false);
+                resetIdleTimer();
+            });
             const clearCacheBtn = shadow.querySelector('#btn-clear-cache');
             clearCacheBtn?.addEventListener('click', async () => {
                 const quizStatusMenu = shadow.querySelector('#quiz-status-display');
                 const ansListMenu = shadow.querySelector('#answers-list');
 
-                // 1. Wipe local answer caches
                 const quizId = QUIZ_DATA?.id || QUIZ_DATA?._id || ROOM_DATA?.quizId || ROOM_DATA?.hash || "active_quiz";
                 GM_deleteValue(`${quizId}`);
 
@@ -149,11 +614,9 @@
                 CACHED_RESULTS = null;
                 hasAutoClickedCurrent = false;
 
-                // 2. Remove all visible checkmarks from the screen
                 document.querySelectorAll('.ans-check').forEach(el => el.remove());
                 document.querySelectorAll('.subtle-answer-text').forEach(el => el.remove());
 
-                // 3. Check for 5/5 Official Answers from finished test FIRST
                 const officialAnswers = formatQuizResultsFromSaved(savedQuestions || ROOM_DATA?.questions);
                 const hasOfficial = officialAnswers && Object.values(officialAnswers).some(a => a && a !== "Answer not found");
 
@@ -161,7 +624,6 @@
                     CACHED_RESULTS = officialAnswers;
                     CLEANED_QUESTIONS = cleanQuizData(savedQuestions || ROOM_DATA?.questions);
 
-                    // Save official 5/5 key into permanent storage
                     const officialMap = {};
                     const qList = Array.isArray(savedQuestions) ? savedQuestions : Object.values(savedQuestions || ROOM_DATA?.questions || {});
                     qList.forEach((q, idx) => {
@@ -176,15 +638,8 @@
                         GM_setValue("active_quiz", { isOfficial: true, answers: officialMap });
                     }
 
-                    // Populate clean 5/5 answers in sidebar drawer (No Lixus, no blind guesses!)
-                    if (ansListMenu) {
-                        ansListMenu.innerHTML = Object.entries(CACHED_RESULTS)
-                            .map(([question, answer]) => `
-                                <div class="answer-item" style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee;">
-                                    <p class="text" style="font-weight: bold; margin-bottom: 4px;">${question}</p>
-                                    <p class="subtextT" style="color: #39be44; opacity: 1;">${answer}</p>
-                                </div>
-                            `).join('');
+                    if (typeof renderAnswersList === 'function') {
+                        renderAnswersList(CACHED_RESULTS, "OFFICIAL");
                     }
 
                     if (quizStatusMenu) {
@@ -194,10 +649,9 @@
 
                     instantHighlight();
                     showNotification("Official answers applied!", "#39be44");
-                    return; // STOP: We have the 100% correct answers, do not call AI to make blind guesses
+                    return;
                 }
 
-                // 4. Fallback: Multi-tier question recovery for AI if official answers are hidden
                 if (savedQuestions && Array.isArray(savedQuestions) && savedQuestions.length > 0) {
                     CLEANED_QUESTIONS = cleanQuizData(savedQuestions);
                 } else if (ROOM_DATA?.questions) {
@@ -206,7 +660,6 @@
                     CLEANED_QUESTIONS = cleanQuizData(QUIZ_DATA.info.questions);
                 }
 
-                // 5. Ultimate Fallback: Live DOM Screen Scraper
                 if (!CLEANED_QUESTIONS || Object.keys(CLEANED_QUESTIONS).length === 0) {
                     const stemEl = document.querySelector('[data-highlight-block="stem"]') ||
                                    document.querySelector('[data-testid="question-container-text"]') ||
@@ -246,7 +699,6 @@
                     return;
                 }
 
-                // 5. Query AI with freshly recovered data
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = "Re-solving quiz with AI...";
                     quizStatusMenu.style.color = "#FFA500";
@@ -258,14 +710,8 @@
                     if (newAnswers && Object.keys(newAnswers).length > 0) {
                         CACHED_RESULTS = formatQuizResults(newAnswers, CLEANED_QUESTIONS);
 
-                        if (ansListMenu) {
-                            ansListMenu.innerHTML = Object.entries(CACHED_RESULTS)
-                                .map(([question, answer]) => `
-                                    <div class="answer-item" style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee;">
-                                        <p class="text" style="font-weight: bold; margin-bottom: 4px;">${question}</p>
-                                        <p class="subtextT" style="color: #39be44; opacity: 1;">${answer}</p>
-                                    </div>
-                                `).join('');
+                        if (typeof renderAnswersList === 'function') {
+                            renderAnswersList(CACHED_RESULTS, "AI");
                         }
 
                         if (quizStatusMenu) {
@@ -291,28 +737,42 @@
                 }
             });
 
-            apikeyBtn?.addEventListener('click', () => {
-                toggleMenu(false);
-                toggleTerms(false);
-                toggleAnswers(false);
-                toggleApikey(true);
+            apikeyBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!main.classList.contains('menu-open')) setMainOpen(true);
+                const wasOpen = apikeyMenu?.classList.contains('open');
+                closeAllSubmenus();
+                if (!wasOpen) {
+                    toggleApikey(true);
+                }
+                resetIdleTimer();
             });
-            apikeyBtnconfig?.addEventListener('click', () => {
-                toggleMenu(false);
-                toggleTerms(false);
-                toggleAnswers(false);
+            apikeyBtnconfig?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllSubmenus();
                 toggleApikey(true);
+                resetIdleTimer();
             });
-            closeApikey?.addEventListener('click', () => toggleApikey(false));
-            apikeyMenu?.addEventListener('mouseleave', () => toggleApikey(false));
-            btnAnswers?.addEventListener('click', () => {
-                toggleMenu(false);
-                toggleTerms(false);
+            closeApikey?.addEventListener('click', (e) => {
+                e.stopPropagation();
                 toggleApikey(false);
-                toggleAnswers(true);
+                resetIdleTimer();
             });
-            closeAnswers?.addEventListener('click', () => toggleAnswers(false));
-            answersMenu?.addEventListener('mouseleave', () => toggleAnswers(false));
+            btnAnswers?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!main.classList.contains('menu-open')) setMainOpen(true);
+                const wasOpen = answersMenu?.classList.contains('open');
+                closeAllSubmenus();
+                if (!wasOpen) {
+                    toggleAnswers(true);
+                }
+                resetIdleTimer();
+            });
+            closeAnswers?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleAnswers(false);
+                resetIdleTimer();
+            });
 
             function UpdateAnsColor() {
                 html.style.setProperty('--color-picked-user', `${colorPicker.value}`);
@@ -324,12 +784,28 @@
             UpdateAnsColor();
             colorPicker.oninput = UpdateAnsColor;
 
-            const main = shadow.querySelector('.main');
-            const menuIcon = shadow.querySelector('.menu');
-            const toggleAns = shadow.querySelector('#toggleAns input[type="checkbox"]');
+            const menuIcon = shadow.querySelector('.trigger-icon');
+            const toggleAnsBtn = shadow.querySelector('#toggleAns');
+            const eyeIcon = toggleAnsBtn?.querySelector('.eye-icon');
+            const eyeOffIcon = toggleAnsBtn?.querySelector('.eye-off-icon');
+            let answersVisible = true;
+            const toggleAns = { get checked() { return answersVisible; }, set checked(v) { answersVisible = v; updateEyeIcon(); } };
+            function updateEyeIcon() {
+                if (eyeIcon) eyeIcon.style.display = answersVisible ? '' : 'none';
+                if (eyeOffIcon) eyeOffIcon.style.display = answersVisible ? 'none' : '';
+                if (toggleAnsBtn) toggleAnsBtn.classList.toggle('active', answersVisible);
+            }
+            updateEyeIcon();
+            toggleAnsBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                answersVisible = !answersVisible;
+                updateEyeIcon();
+                toggleAnswersEn();
+                if (answersVisible) instantHighlight();
+                showNotification(answersVisible ? "Answers: Visible" : "Answers: Hidden", "#4579f2");
+            });
             const toggleAnsSub = shadow.querySelector('.subtle-answer-text');
             const toggleAnsDark = shadow.querySelector('#dark-mode input[type="checkbox"]');
-            // Auto Click Toggle and Delay binding
             const toggleAutoClick = shadow.querySelector('#toggle-autoclick');
             const inputAutoClickDelay = shadow.querySelector('#autoclick-delay');
 
@@ -364,7 +840,6 @@
                 AUTO_CLICK_DELAY = Math.min(10000, AUTO_CLICK_DELAY + 100);
                 updateDelayDisplay();
             });
-            // 1. Notification Toggle
             const toggleNotif = shadow.querySelector('#toggle-notifications');
             if (toggleNotif) {
                 toggleNotif.checked = NOTIFICATIONS_ENABLED;
@@ -375,37 +850,39 @@
                 });
             }
 
-            // 2. Hide / Unhide Stealth Mode Handlers
             const btnHideUi = shadow.querySelector('#btn-hide-ui');
             const stealthUnhideZone = shadow.querySelector('#stealth-unhide-zone');
 
             function hideUiCompletely() {
-                toggleMenu(false);
-                toggleTerms(false);
-                toggleApikey(false);
-                toggleAnswers(false);
-
+                setMainOpen(false);
+                hideTooltip();
                 main.classList.add('stealth-hidden');
+                main.inert = true;
+                main.setAttribute('aria-hidden', 'true');
 
                 if (stealthUnhideZone) {
                     stealthUnhideZone.style.display = 'block';
-                    // Trigger radiant light aura animation
+                    stealthUnhideZone.style.pointerEvents = 'auto';
                     stealthUnhideZone.classList.remove('aura-glow');
-                    void stealthUnhideZone.offsetWidth; // Force reflow so animation plays
+                    void stealthUnhideZone.offsetWidth;
                     stealthUnhideZone.classList.add('aura-glow');
                 }
 
-                if (dragTarget) dragTarget.style.pointerEvents = 'auto';
-                showNotification("UI hidden! Click the glowing zone to restore.");
+                showNotification("UI hidden! Click the glowing zone or Ctrl+Click to restore.");
             }
 
             function unhideUi() {
                 main.classList.remove('stealth-hidden');
+                main.inert = false;
+                main.removeAttribute('aria-hidden');
+
                 if (stealthUnhideZone) {
                     stealthUnhideZone.classList.remove('aura-glow');
                     stealthUnhideZone.style.display = 'none';
+                    stealthUnhideZone.style.pointerEvents = 'none';
                 }
-                if (dragTarget) dragTarget.style.pointerEvents = '';
+
+                clampToolbarToViewport();
                 showNotification("UI restored!");
             }
 
@@ -415,16 +892,13 @@
                 e.preventDefault();
                 unhideUi();
             });
-            // Global Stealth Toggle: Ctrl + Left Click anywhere to Hide OR Unhide UI
             window.addEventListener('click', (e) => {
                 if (e.ctrlKey || e.metaKey) {
-                    // Don't intercept if clicking an actual link tag
                     if (e.target && e.target.closest && e.target.closest('a')) return;
 
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Two-way switch: if hidden -> unhide, if visible -> hide
                     if (main.classList.contains('stealth-hidden')) {
                         unhideUi();
                     } else {
@@ -433,7 +907,6 @@
                 }
             }, true);
 
-            // Global Toggle: Alt + Left Click anywhere to show/hide Answers
             window.addEventListener('click', (e) => {
                 if (e.altKey && e.button === 0) {
                     e.preventDefault();
@@ -448,7 +921,6 @@
                 }
             }, true);
 
-            // Safe background brightness detector (Will never throw null crash)
             function verifyBackgroundColor() {
                 try {
                     const el = document.querySelector('.test-theme-waiting');
@@ -473,7 +945,6 @@
                 main.style.setProperty('--secondary-color', props[1]);
                 if (toggleAnsDark) toggleAnsDark.checked = isDark;
 
-                // Sync custom UI elements to current theme
                 shadow?.querySelectorAll('.settings_menu, .shortcuts_menu, .terms_menu, .apikey_menu, .answers_menu').forEach(m => {
                     m.style.backgroundColor = props[0];
                 });
@@ -502,7 +973,6 @@
             }
 
             function initThemeObserver() {
-                // If the user manually saved a dark/light mode preference, do not let Quizizz auto-override it
                 if (GM_getValue("darkMode", null) !== null) return;
 
                 const el = document.querySelector('.test-theme-waiting');
@@ -530,26 +1000,7 @@
 
             initThemeObserver();
 
-            cards.forEach((card) => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const cardCenterX = rect.left + rect.width / 2;
-                    const cardCenterY = rect.top + rect.height / 2;
-
-                    const deltaX = e.clientX - cardCenterX;
-                    const deltaY = e.clientY - cardCenterY;
-
-                    const strength = 0.35;
-                    const moveX = deltaX * strength;
-                    const moveY = deltaY * strength;
-
-                    card.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                });
-
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = '';
-                });
-            });
+            // Parallax effect removed — not applicable to pill toolbar buttons
 
             const testApiBtn = shadow.querySelector('#test-api-btn');
             const apiStatusDot = shadow.querySelector('#api-status-dot');
@@ -565,6 +1016,7 @@
         const selectedProvider = apiProvider?.value;
         apiStatusDot.style.backgroundColor = 'gray';
         mainStatusDot.style.backgroundColor = 'gray';
+        mainStatusDot.style.boxShadow = '0 0 4px gray';
         apiStatusText.textContent = 'Not tested';
         switch (selectedProvider) {
             case "groq":
@@ -644,11 +1096,17 @@
 
                     if (OK) {
                         apiStatusDot.style.backgroundColor = 'green';
-                        if (typeof mainStatusDot !== 'undefined') mainStatusDot.style.backgroundColor = 'green';
+                        if (typeof mainStatusDot !== 'undefined') {
+                            mainStatusDot.style.backgroundColor = 'green';
+                            mainStatusDot.style.boxShadow = '0 0 4px green';
+                        }
                         apiStatusText.textContent = 'Connected';
                     } else {
                         apiStatusDot.style.backgroundColor = 'red';
-                        if (typeof mainStatusDot !== 'undefined') mainStatusDot.style.backgroundColor = 'red';
+                        if (typeof mainStatusDot !== 'undefined') {
+                            mainStatusDot.style.backgroundColor = 'red';
+                            mainStatusDot.style.boxShadow = '0 0 4px red';
+                        }
                         apiStatusText.textContent = 'Failed';
                     }
                 }
@@ -665,6 +1123,7 @@
                 } else {
                     apiStatusDot.style.backgroundColor = 'gray';
                     mainStatusDot.style.backgroundColor = 'gray';
+                    mainStatusDot.style.boxShadow = '0 0 4px gray';
                     apiStatusText.textContent = 'Disabled';
                 }
             }
@@ -679,7 +1138,6 @@
         GM_setValue("ansEnabled", isAnsVisible);
         html.style.setProperty('--color-highlight', isAnsVisible ? 'var(--color-picked-user)' : 'currentColor');
 
-        // Apply visibility to all rendered checks and text hints on page
         document.querySelectorAll('.ans-check').forEach(el => {
             el.style.opacity = isAnsVisible ? '1' : '0';
         });
@@ -694,7 +1152,6 @@
                 GM_setValue("darkMode", toggleAnsDark.checked);
             };
 
-            toggleAns.addEventListener('change', toggleAnswersEn);
             const ansEnabled = GM_getValue("ansEnabled");
             toggleAns.checked = ansEnabled;
 
@@ -712,6 +1169,20 @@
             if (versionBadge && typeof GM_info !== 'undefined') {
                 versionBadge.textContent = "VERSION " + GM_info.script.version;
             }
+
+            // Initialize inert states on hidden panels and closed toolbar pill
+            [settingsMenu, termsMenu, apikeyMenu, answersMenu].forEach(panel => {
+                if (panel) {
+                    panel.inert = true;
+                    panel.setAttribute('aria-hidden', 'true');
+                }
+            });
+            if (toolbarPill) {
+                toolbarPill.inert = true;
+                toolbarPill.setAttribute('aria-hidden', 'true');
+            }
+
+            initToolbarPosition();
 
         } catch (e) {
             showNotification("Error injecting the shadow DOM", "#af4c4c");

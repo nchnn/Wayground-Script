@@ -10,7 +10,6 @@
         const entries = Object.entries(questionsJsonObject || {});
         if (entries.length === 0) return {};
 
-        // Batch into chunks of 6 to stay well under Groq's 8,000 TPM limit
         const CHUNK_SIZE = 6;
         const chunks = [];
         for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
@@ -27,7 +26,6 @@
 
         const aggregatedAnswers = {};
 
-        // Sub-function executing GM_xmlhttpRequest with 15s timeout
         function solveChunk(chunkData, chunkIndex) {
             const payload = {
                 model: "openai/gpt-oss-120b",
@@ -43,7 +41,7 @@
                 GM_xmlhttpRequest({
                     method: "POST",
                     url: url,
-                    timeout: 15000, // 15-second timeout prevents infinite freezing
+                    timeout: 15000,
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${API_KEY}`
@@ -77,7 +75,6 @@
             });
         }
 
-        // Process batches sequentially
         for (let i = 0; i < chunks.length; i++) {
             try {
                 showNotification(`Solving batch ${i + 1}/${chunks.length} with Groq...`, "#FFA500");

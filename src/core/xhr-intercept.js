@@ -68,7 +68,6 @@
                             QUIZ_NAME = data?.room?.name;
                             TYPE_QUIZ = data?.room?.type;
 
-                            // 100% ACCURATE FIX: Fetch official 5/5 answers directly from Quizizz database on join!
                             const directQuizId = data?.room?.quizId || data?.room?.quizInfo?.quizId;
                             if (directQuizId) {
                                 fetchQuizAnswers(directQuizId);
@@ -133,7 +132,6 @@
                             quizId = data.data?.quizInfo?.quizId;
                             fetchQuizAnswers(quizId);
                         } else if (isCheckRoomAsignment) {
-                            // Auto SPA Ghost Killer 1: Assures solo entry sequences clear cache cross context securely globally.
                             savedQuestions = null; CLEANED_QUESTIONS = null;
                             const data = JSON.parse(this.responseText);
                             try {
@@ -144,7 +142,6 @@
                             } catch {}
                             applyPatches(this, JSON.stringify(data));
                         } else if (isCheckRoom) {
-                            // SPA Lobby Handler: Clears previous game memory when entering a new lobby
                             QUIZ_DATA = null;
                             ROOM_DATA = null;
                             savedQuestions = null;

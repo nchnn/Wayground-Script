@@ -1,13 +1,3 @@
-// Build: concatenate the source fragments into one Violentmonkey-ready .user.js.
-//
-// The fragments share a single function scope -- that is deliberate. A userscript
-// runs as one classic script, so `let`/`function` declarations are visible across
-// fragments exactly as they were when this was one 3,200-line file. Splitting into
-// ES modules would force `import`/`export` on ~50 mutually-recursive helpers and
-// every shared-state assignment; concatenation keeps the runtime byte-identical.
-//
-// Order matters only for top-level statements (`let` is not hoisted across files,
-// function declarations are). Keep this list in dependency order, not alphabetical.
 import { readFileSync, writeFileSync, watch } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,18 +27,16 @@ const OUT = join(root, 'Wayground Script.user.js');
 
 function build() {
   const header = read('header.txt').replace(/\s*$/, '\n');
-  // Blank line, IIFE opener, strict mode -- the only unbalanced braces live here,
-  // so every file under src/ parses on its own in the editor.
   const prologue = "\n(function() {\n    'use strict';\n";
   let out = header + prologue + ORDER.map(read).join('') + '})();';
 
   for (const [marker, content] of [['@@UI_CSS@@', read('ui/ui.css')], ['@@UI_HTML@@', read('ui/ui.html')]]) {
     const hits = out.split(marker).length - 1;
     if (hits !== 1) throw new Error(`${marker}: expected 1 occurrence, found ${hits}`);
-    out = out.split(marker).join(content); // split/join: no `$&` special-casing
+    out = out.split(marker).join(content);
   }
 
-  writeFileSync(OUT, out.replace(/\n/g, '\r\n'), 'utf8'); // original is CRLF with no trailing newline
+  writeFileSync(OUT, out.replace(/\n/g, '\r\n'), 'utf8');
   return out.split('\n').length;
 }
 

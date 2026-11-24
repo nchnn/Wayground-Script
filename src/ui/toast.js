@@ -52,4 +52,3 @@
             }, 300);
         }, 3000);
     }
-    // Content Fingerprinter: Identifies the test by question text so NEW game codes load the same 5/5 answers!

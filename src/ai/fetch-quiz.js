@@ -37,7 +37,6 @@
             });
         });
     }
-    // Helper to get fresh UI elements from shadow DOM
     function getShadowEl(selector) {
         return shadow ? shadow.querySelector(selector) : null;
     }

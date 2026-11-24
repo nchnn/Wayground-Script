@@ -10,7 +10,6 @@
                 try {
                     await fetchQuizData(targetHash);
                 } catch (e) {
-                    // Silent fallback: allows direct quiz API pipeline to take over without showing false red alarm
                     console.log("Room hash not on student endpoint, falling back to direct quiz API...");
                 }
             }
@@ -18,7 +17,6 @@
             CLEANED_QUESTIONS = cleanQuizData(data.questions || ROOM_DATA?.questions);
             const hash = await generateQuizHash(CLEANED_QUESTIONS);
 
-            // Comprehensive ID & Content Signature Resolution (Recognizes same test across different Game PINs!)
             const resolvedQuizId = QUIZ_DATA?._id || QUIZ_DATA?.id || ROOM_DATA?.quizId || ROOM_DATA?.hash || data?.quizId || data?.hash || "active_quiz";
             const contentSig = getQuizContentKey(data?.questions || ROOM_DATA?.questions || savedQuestions);
 
@@ -36,15 +34,12 @@
             const quizStatusMenu = getShadowEl('#quiz-status-display');
             const ansListMenu = getShadowEl('#answers-list');
 
-            // PRIORITY 1: Check if Quizizz provided the official teacher answer key in the room payload!
             const officialAnswers = formatQuizResultsFromSaved(data.questions || ROOM_DATA?.questions || savedQuestions);
             const hasOfficial = officialAnswers && Object.values(officialAnswers).some(a => a && a !== "Answer not found");
 
             if (hasOfficial) {
-                // 100% ACCURATE: Use the real teacher answer key straight from Quizizz
                 CACHED_RESULTS = officialAnswers;
 
-                // Build official map and overwrite any bad AI guesses in permanent storage
                 const officialMap = {};
                 const qList = Array.isArray(data.questions || ROOM_DATA?.questions || savedQuestions)
                     ? (data.questions || ROOM_DATA?.questions || savedQuestions)
@@ -67,69 +62,48 @@
 
                 instantHighlight();
 
-                const htmlList = Object.entries(CACHED_RESULTS)
-                    .map(([question, answer]) => `
-                        <div class="answer-item" style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee;">
-                            <p class="text" style="font-weight: bold; margin-bottom: 4px;">${question}</p>
-                            <p class="subtextT" style="color: #39be44; opacity: 1;">${answer}</p>
-                        </div>
-                    `).join('');
-
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = 'Answers available (Official)';
                     quizStatusMenu.style.color = '#39be44';
                 }
-                if (ansListMenu) ansListMenu.innerHTML = htmlList || '<p>No answers available.</p>';
+                if (typeof renderAnswersList === 'function') {
+                    renderAnswersList(CACHED_RESULTS, "OFFICIAL");
+                }
                 showNotification("Official Quizizz answers loaded!");
-                return; // HARD STOP: Real answers are in hand, do not use AI cache or call AI
+                return;
             }
 
-            // PRIORITY 2: Load cache ONLY if it is a verified 5/5 OFFICIAL key (Blocks bad AI guesses from loading)
             if (quizStorage && quizStorage.isOfficial && quizStorage.answers && Object.keys(quizStorage.answers).length > 0) {
                 AI_DATA = quizStorage.answers;
                 CACHED_RESULTS = formatQuizResults(AI_DATA, CLEANED_QUESTIONS);
 
                 instantHighlight();
 
-                const htmlList = Object.entries(CACHED_RESULTS)
-                    .map(([question, answer]) => `
-                        <div class="answer-item" style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee;">
-                            <p class="text" style="font-weight: bold; margin-bottom: 4px;">${question}</p>
-                            <p class="subtextT" style="color: #39be44; opacity: 1;">${answer}</p>
-                        </div>
-                    `).join('');
-
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = 'Answers available';
                     quizStatusMenu.style.color = '#39be44';
                 }
-                if (ansListMenu) ansListMenu.innerHTML = htmlList || '<p>No answers available.</p>';
+                if (typeof renderAnswersList === 'function') {
+                    renderAnswersList(CACHED_RESULTS, "CACHE");
+                }
                 showNotification("Official answers loaded from cache!", "#39be44");
                 return;
             }
 
-            // 2. Query AI if enabled
             if (isAiChecked) {
                 const aiAnswers = await processQuizAi(CLEANED_QUESTIONS);
                 if (aiAnswers) {
                     CACHED_RESULTS = formatQuizResults(aiAnswers, data.questions || CLEANED_QUESTIONS);
 
-                    // Instantly trigger checkmark (0ms delay)
                     instantHighlight();
-
-                    const htmlList = Object.entries(CACHED_RESULTS)
-                        .map(([question, answer]) => `
-                            <div class="answer-item" style="margin-bottom: 12px; padding: 8px; border-bottom: 1px solid #eee;">
-                                <p class="text" style="font-weight: bold; margin-bottom: 4px;">${question}</p>
-                                <p class="subtextT" style="color: #39be44; opacity: 1;">${answer}</p>
-                            </div>
-                        `).join('');
 
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = 'Answers available';
                         quizStatusMenu.style.color = '#39be44';
                     }
-                    if (ansListMenu) ansListMenu.innerHTML = htmlList || '<p>No answers available.</p>';
+                    if (typeof renderAnswersList === 'function') {
+                        renderAnswersList(CACHED_RESULTS, "AI");
+                    }
                     showNotification("Answers generated successfully");
                 }
             } else {
@@ -151,12 +125,10 @@
             return null;
         }
 
-        // Determine quiz ID with fallbacks so it never silently aborts
         const quizId = QUIZ_DATA?.id || QUIZ_DATA?._id || ROOM_DATA?.quizId || ROOM_DATA?.hash || "active_quiz";
         const hash = await generateQuizHash(cleanedQuestionsJson);
         const provider = getSelectedProvider();
 
-        // Always sync the latest API key from storage
         if (provider === "groq") API_KEY = GM_getValue("apiKeyGroq", API_KEY);
         else if (provider === "gemini") API_KEY = GM_getValue("apiKeyGemini", API_KEY);
         else if (provider === "gpt") API_KEY = GM_getValue("apiKeyGpt", API_KEY);
@@ -194,4 +166,3 @@
             return null;
         }
     }
-    // Helper: Strip HTML tags, preserve math exponents/subscripts, and decode entities
