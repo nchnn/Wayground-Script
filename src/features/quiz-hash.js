@@ -43,8 +43,11 @@
             const qText = stripHtml(rawQ);
             if (!qText) return;
 
-            // Check if it's a match, classification, or order question first
-            if (typeof formatMatchOrOrderAnswer === 'function') {
+            const kind = String(q.type || q.structure?.kind || '').toUpperCase();
+            const isBlankOrOpen = kind.includes('BLANK') || kind.includes('OPEN');
+
+            // Check if it's a match, classification, or order question first (only if NOT blank)
+            if (!isBlankOrOpen && typeof formatMatchOrOrderAnswer === 'function') {
                 const matchAns = formatMatchOrOrderAnswer(q);
                 if (matchAns) {
                     results[qText] = matchAns;
@@ -65,11 +68,38 @@
                 };
             });
 
+            if (isBlankOrOpen) {
+                const blankAnswers = [];
+                options.forEach(o => {
+                    if (o.text && o.text.trim()) blankAnswers.push(o.text.trim());
+                });
+                if (answer !== undefined && answer !== null && answer !== -1) {
+                    const extracted = typeof extractAnswerText === 'function' ? extractAnswerText(answer, options) : String(answer);
+                    if (extracted && extracted !== '[object Object]' && !extracted.includes('➔') && !extracted.includes('Any Answer') && !extracted.includes('Poll')) {
+                        extracted.split(/\s*\|\s*/).forEach(t => {
+                            if (t && !blankAnswers.includes(t)) blankAnswers.push(t);
+                        });
+                    }
+                }
+                const targetOpts = q.structure?.targets?.[0]?.options || [];
+                targetOpts.forEach(to => {
+                    const tText = stripHtml(to.text || to.value || to || '');
+                    if (tText && !blankAnswers.includes(tText)) blankAnswers.push(tText);
+                });
+                if (blankAnswers.length > 0) {
+                    results[qText] = blankAnswers.join(' | ');
+                    return;
+                } else {
+                    results[qText] = "Answer not found";
+                    return;
+                }
+            }
+
             let ansText = "Answer not found";
             if (answer !== undefined && answer !== null) {
-                if (answer === -1) {
+                if (kind === 'POLL' || (answer === -1 && kind === 'POLL')) {
                     ansText = "Any Answer / Poll (All choices accepted)";
-                } else {
+                } else if (answer !== -1) {
                     const targetIndices = Array.isArray(answer) ? answer : [answer];
                     const matchedTexts = options
                         .filter((opt, idx) => targetIndices.some(t => String(t) === String(opt.id) || String(t) === String(idx)))
@@ -80,7 +110,7 @@
                         ansText = matchedTexts.join(" | ");
                     } else {
                         const extracted = typeof extractAnswerText === 'function' ? extractAnswerText(answer, options) : '';
-                        if (extracted && extracted !== '[object Object]' && extracted.trim().length > 0) {
+                        if (extracted && extracted !== '[object Object]' && extracted.trim().length > 0 && !extracted.includes('Any Answer')) {
                             ansText = extracted;
                         }
                     }

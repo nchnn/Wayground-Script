@@ -35,9 +35,9 @@
         function parseNode(node) {
             if (node === null || node === undefined) return '';
 
-            // Handle poll / opinion marker
+            // Handle poll / opinion marker or missing answer sentinel (-1)
             if (node === -1) {
-                return 'Any Answer / Poll (All choices accepted)';
+                return '';
             }
 
             // Handle number: either an option index or raw numeric value
@@ -149,11 +149,17 @@
     function getDetailedMatchPairs(q) {
         if (!q) return [];
         const structure = q.structure || {};
+        const kind = String(q.type || structure.kind || '').toUpperCase();
+
+        // BLANK, OPEN, MCQ, MSQ, POLL are NEVER matching or ordering questions!
+        if (kind.includes('BLANK') || kind.includes('OPEN') || kind === 'MCQ' || kind === 'MSQ' || kind === 'POLL') {
+            return [];
+        }
+
         const rawOptions = structure.options || q.options || [];
         const rawTargets = structure.targets || q.targets || [];
         const answer = structure.answer !== undefined ? structure.answer : q.answer;
         const matches = structure.matches || q.matches;
-        const kind = String(q.type || structure.kind || '').toUpperCase();
 
         const isOrder = kind.includes('ORDER') || kind.includes('REORDER') || kind.includes('SORT') ||
                         (rawTargets.length === 0 && Array.isArray(answer) && answer.length > 1 && answer.length === rawOptions.length);
@@ -315,15 +321,26 @@
     function formatMatchOrOrderAnswer(q) {
         if (!q) return null;
         const structure = q.structure || {};
+        const kind = String(q.type || structure.kind || '').toUpperCase();
+
+        if (kind.includes('BLANK') || kind.includes('OPEN') || kind === 'MCQ' || kind === 'MSQ' || kind === 'POLL') {
+            return null;
+        }
+
         const rawOptions = structure.options || q.options || [];
         const rawTargets = structure.targets || q.targets || [];
-        const kind = String(q.type || structure.kind || '').toUpperCase();
         const answer = structure.answer !== undefined ? structure.answer : q.answer;
-        const isMatch = kind.includes('MATCH') || kind.includes('CLASSIF') || (rawTargets && rawTargets.length > 0);
+
+        const hasValidTargetCategories = rawTargets.length > 0 && rawTargets.some(t => {
+            const txt = stripHtml(t.text || t.value || t.query?.text || '');
+            return txt.trim().length > 0;
+        });
+
+        const isMatch = (kind.includes('MATCH') || kind.includes('CLASSIF') || hasValidTargetCategories) && !kind.includes('BLANK') && !kind.includes('OPEN');
         const isOrder = kind.includes('ORDER') || kind.includes('REORDER') || kind.includes('SORT') ||
                         (rawTargets.length === 0 && Array.isArray(answer) && answer.length > 1 && answer.length === rawOptions.length);
 
-        if (!isMatch && !isOrder && rawTargets.length === 0) return null;
+        if (!isMatch && !isOrder) return null;
 
         // ORDER or MATCH
         const detailed = getDetailedMatchPairs(q);
@@ -406,7 +423,8 @@
                     options: options
                 };
 
-                if (rawTargets.length > 0) {
+                const isBlankOrOpenType = questionType.includes('BLANK') || questionType.includes('OPEN');
+                if (rawTargets.length > 0 && !isBlankOrOpenType) {
                     itemData.targets = rawTargets.map((t, idx) => ({
                         id: String(t.id || t._id || idx),
                         text: stripHtml(t.text || t.query?.text || t.value || `Category #${idx + 1}`)
@@ -461,8 +479,9 @@
             let answerText = "Answer not found";
 
             if (aiAnswer !== undefined && aiAnswer !== null) {
+                const isPoll = qData?.type === 'POLL' || qData?.structure?.kind === 'POLL';
                 if (aiAnswer === -1) {
-                    answerText = "Any Answer / Poll (All choices accepted)";
+                    answerText = isPoll ? "Any Answer / Poll (All choices accepted)" : "Answer not found";
                 } else {
                     const targetArray = Array.isArray(aiAnswer) ? aiAnswer : [aiAnswer];
                     const matchedTexts = options

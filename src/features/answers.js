@@ -25,7 +25,7 @@
                             const quizStatusMenu = getShadowEl('#quiz-status-display');
                             if (quizStatusMenu) {
                                 quizStatusMenu.innerText = "Answers available";
-                                quizStatusMenu.style.color = "#39be44";
+                                quizStatusMenu.style.color = "var(--theme-accent)";
                             }
 
                             CLEANED_QUESTIONS = cleanQuizData(savedQuestions);
@@ -40,6 +40,7 @@
 
                             if (hasValidOfficialAnswers) {
                                 CACHED_RESULTS = officialAnswers;
+                                OFFICIAL_CACHED_RESULTS = officialAnswers;
 
                                 const officialMap = {};
                                 savedQuestions.forEach((q, idx) => {
@@ -78,14 +79,17 @@
 
                                 if (savedOfficial && savedOfficial.isOfficial && savedOfficial.results) {
                                     CACHED_RESULTS = savedOfficial.results;
+                                    OFFICIAL_CACHED_RESULTS = savedOfficial.results;
                                     AI_DATA = savedOfficial.answers;
                                 } else {
                                     const existingSolved = GM_getValue(`${cleanRoomId}`, null) || GM_getValue("active_quiz", null);
                                     if (existingSolved && existingSolved.answers && Object.keys(existingSolved.answers).length > 0) {
                                         AI_DATA = existingSolved.answers;
                                         CACHED_RESULTS = formatQuizResults(AI_DATA, CLEANED_QUESTIONS);
+                                        OFFICIAL_CACHED_RESULTS = CACHED_RESULTS;
                                     } else {
                                         CACHED_RESULTS = officialAnswers;
+                                        OFFICIAL_CACHED_RESULTS = officialAnswers;
                                     }
                                 }
                             }
@@ -98,10 +102,10 @@
                             showNotification("Answers retrieved successfully");
                         }
                     } catch (e) {
-                        showNotification("Failed to parse answers", "#af4c4c");
+                        showNotification("Failed to parse answers", "var(--theme-danger, #af4c4c)");
                     }
                 },
-                onerror: () => showNotification("Failed to retrieve answers", "#af4c4c")
+                onerror: () => showNotification("Failed to retrieve answers", "var(--theme-danger, #af4c4c)")
             });
         } catch (e) {
             console.error(e);

@@ -1,6 +1,6 @@
-    function showNotification(message, color = '#4caf50') {
+    function showNotification(message, color = null) {
         if (!NOTIFICATIONS_ENABLED) return;
-    let container = document.getElementById('toast-container');
+        let container = document.getElementById('toast-container');
         if (!container) {
             container = document.createElement('div');
             container.id = 'toast-container';
@@ -19,13 +19,16 @@
             document.body.appendChild(container);
         }
 
+        const isStandardColor = !color || color === '#4caf50' || color === '#39be44' || color.startsWith('var(');
+        const finalColor = isStandardColor ? (NOTIFICATION_COLOR || 'var(--theme-accent, #39be44)') : color;
+
         const toast = document.createElement('div');
         Object.assign(toast.style, {
-            backgroundColor: color,
+            backgroundColor: finalColor,
             color: 'white',
             padding: '12px 24px',
             borderRadius: '8px',
-            fontSize: '16px',
+            fontSize: `${NOTIFICATION_FONT_SIZE || 15}px`,
             fontWeight: 'bold',
             boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
             fontFamily: 'sans-serif',

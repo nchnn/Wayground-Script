@@ -38,7 +38,7 @@
             const hasOfficial = officialAnswers && Object.values(officialAnswers).some(a => a && a !== "Answer not found");
 
             if (hasOfficial) {
-                CACHED_RESULTS = officialAnswers;
+                CACHED_RESULTS = Object.assign({}, officialAnswers);
 
                 const officialMap = {};
                 const qList = Array.isArray(data.questions || ROOM_DATA?.questions || savedQuestions)
@@ -48,28 +48,58 @@
                 qList.forEach((q, idx) => {
                     const qId = q._id || q.id || String(idx);
                     const ans = q.structure?.answer !== undefined ? q.structure.answer : q.answer;
-                    if (ans !== undefined && ans !== null) {
+                    if (ans !== undefined && ans !== null && ans !== -1) {
                         officialMap[qId] = ans;
                     }
                 });
 
-                if (Object.keys(officialMap).length > 0) {
-                    AI_DATA = officialMap;
+                AI_DATA = Object.assign({}, officialMap);
+
+                // Identify missing questions (e.g. BLANK/OPEN or questions with no official answer in the API)
+                const missingQuestions = {};
+                if (CLEANED_QUESTIONS) {
+                    qList.forEach((q, idx) => {
+                        const qId = q._id || q.id || String(idx);
+                        const qText = stripHtml(q.structure?.query?.text || q.query?.text || q.question || '');
+                        const currAns = CACHED_RESULTS[qText];
+                        if (!currAns || currAns === "Answer not found") {
+                            if (CLEANED_QUESTIONS[qId]) {
+                                missingQuestions[qId] = CLEANED_QUESTIONS[qId];
+                            }
+                        }
+                    });
+                }
+
+                const missingCount = Object.keys(missingQuestions).length;
+                if (missingCount > 0 && isAiChecked) {
+                    showNotification(`Official answers loaded! Generating AI answers for ${missingCount} question(s)...`, "#FFA500");
+                    const aiPartial = await requestAiAnswers(missingQuestions);
+                    if (aiPartial) {
+                        Object.assign(AI_DATA, aiPartial);
+                        const formattedPartial = formatQuizResults(aiPartial, missingQuestions);
+                        Object.assign(CACHED_RESULTS, formattedPartial);
+                        showNotification("AI answers generated and merged!");
+                    }
+                }
+
+                if (Object.keys(AI_DATA).length > 0) {
                     const targetKey = resolvedQuizId || "active_quiz";
-                    GM_setValue(`${targetKey}`, { isOfficial: true, answers: officialMap });
-                    GM_setValue("active_quiz", { isOfficial: true, answers: officialMap });
+                    GM_setValue(`${targetKey}`, { isOfficial: true, answers: AI_DATA });
+                    GM_setValue("active_quiz", { isOfficial: true, answers: AI_DATA });
                 }
 
                 instantHighlight();
 
                 if (quizStatusMenu) {
-                    quizStatusMenu.innerText = 'Answers available (Official)';
-                    quizStatusMenu.style.color = '#39be44';
+                    quizStatusMenu.innerText = (missingCount > 0 && isAiChecked) ? 'Answers available (Official + AI)' : 'Answers available (Official)';
+                    quizStatusMenu.style.color = 'var(--theme-accent)';
                 }
                 if (typeof renderAnswersList === 'function') {
-                    renderAnswersList(CACHED_RESULTS, "OFFICIAL");
+                    renderAnswersList(CACHED_RESULTS, (missingCount > 0 && isAiChecked) ? "HYBRID" : "OFFICIAL");
                 }
-                showNotification("Official Quizizz answers loaded!");
+                if (missingCount === 0 || !isAiChecked) {
+                    showNotification("Official Quizizz answers loaded!");
+                }
                 return;
             }
 
@@ -81,12 +111,12 @@
 
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = 'Answers available';
-                    quizStatusMenu.style.color = '#39be44';
+                    quizStatusMenu.style.color = 'var(--theme-accent)';
                 }
                 if (typeof renderAnswersList === 'function') {
                     renderAnswersList(CACHED_RESULTS, "CACHE");
                 }
-                showNotification("Official answers loaded from cache!", "#39be44");
+                showNotification("Official answers loaded from cache!");
                 return;
             }
 
@@ -99,7 +129,7 @@
 
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = 'Answers available';
-                        quizStatusMenu.style.color = '#39be44';
+                        quizStatusMenu.style.color = 'var(--theme-accent)';
                     }
                     if (typeof renderAnswersList === 'function') {
                         renderAnswersList(CACHED_RESULTS, "AI");
@@ -118,15 +148,9 @@
         }
     }
 
-    async function processQuizAi(cleanedQuestionsJson) {
-        if (!cleanedQuestionsJson || Object.keys(cleanedQuestionsJson).length === 0) {
-            console.error("No questions provided to processQuizAi.");
-            showNotification("No question data found to solve", "#af4c4c");
-            return null;
-        }
+    async function requestAiAnswers(questionsJson) {
+        if (!questionsJson || Object.keys(questionsJson).length === 0) return null;
 
-        const quizId = QUIZ_DATA?.id || QUIZ_DATA?._id || ROOM_DATA?.quizId || ROOM_DATA?.hash || "active_quiz";
-        const hash = await generateQuizHash(cleanedQuestionsJson);
         const provider = getSelectedProvider();
 
         if (provider === "groq") API_KEY = GM_getValue("apiKeyGroq", API_KEY);
@@ -143,26 +167,79 @@
             let answers = null;
 
             if (provider === "groq") {
-                answers = await solveQuizWithGroq(cleanedQuestionsJson);
+                answers = await solveQuizWithGroq(questionsJson);
             } else if (provider === "gemini") {
-                answers = await solveQuizWithGemini(cleanedQuestionsJson);
+                answers = await solveQuizWithGemini(questionsJson);
             } else if (provider === "gpt") {
-                answers = await solveQuizWithGPT(cleanedQuestionsJson);
+                answers = await solveQuizWithGPT(questionsJson);
             }
 
-            if (answers && Object.keys(answers).length > 0) {
-                AI_DATA = answers;
-                CACHED_RESULTS = formatQuizResults(AI_DATA, cleanedQuestionsJson);
-                GM_setValue(`${quizId}`, { "hash": hash, answers: answers });
-                instantHighlight();
-                return AI_DATA;
-            } else {
-                console.warn("AI returned empty answers object.");
-                return null;
-            }
+            return (answers && Object.keys(answers).length > 0) ? answers : null;
         } catch (err) {
             showNotification("AI solver error: " + (err.message || err), "#af4c4c");
             console.error("AI solver error:", err);
+            return null;
+        }
+    }
+
+    const PENDING_ON_DEMAND = new Set();
+    async function solveSingleQuestionOnDemand(qId, qData) {
+        const toggleAiCheckbox = getShadowEl('#toggle-ai-checkbox');
+        const isAiChecked = toggleAiCheckbox ? toggleAiCheckbox.checked : GM_getValue("aiAssistance", false);
+        if (!isAiChecked) return null;
+
+        const targetId = qId || qData?._id || qData?.id || 'active_q';
+        if (PENDING_ON_DEMAND.has(targetId)) return null;
+        PENDING_ON_DEMAND.add(targetId);
+
+        try {
+            const singleJson = {};
+            const cleanObj = (CLEANED_QUESTIONS && CLEANED_QUESTIONS[targetId]) ? CLEANED_QUESTIONS[targetId] : {
+                type: 'BLANK',
+                question: stripHtml(qData?.question || qData?.structure?.query?.text || 'Question'),
+                options: []
+            };
+            singleJson[targetId] = cleanObj;
+
+            const answers = await requestAiAnswers(singleJson);
+            if (answers && answers[targetId]) {
+                if (!AI_DATA) AI_DATA = {};
+                AI_DATA[targetId] = answers[targetId];
+
+                const stem = stripHtml(qData?.question || qData?.structure?.query?.text || '');
+                if (stem && CACHED_RESULTS) {
+                    CACHED_RESULTS[stem] = String(answers[targetId]);
+                }
+                const quizId = QUIZ_DATA?.id || QUIZ_DATA?._id || ROOM_DATA?.quizId || ROOM_DATA?.hash || "active_quiz";
+                GM_setValue(`${quizId}`, { isOfficial: false, answers: AI_DATA });
+                instantHighlight();
+                return answers[targetId];
+            }
+        } finally {
+            PENDING_ON_DEMAND.delete(targetId);
+        }
+        return null;
+    }
+
+    async function processQuizAi(cleanedQuestionsJson) {
+        if (!cleanedQuestionsJson || Object.keys(cleanedQuestionsJson).length === 0) {
+            console.error("No questions provided to processQuizAi.");
+            showNotification("No question data found to solve", "#af4c4c");
+            return null;
+        }
+
+        const quizId = QUIZ_DATA?.id || QUIZ_DATA?._id || ROOM_DATA?.quizId || ROOM_DATA?.hash || "active_quiz";
+        const hash = await generateQuizHash(cleanedQuestionsJson);
+
+        const answers = await requestAiAnswers(cleanedQuestionsJson);
+        if (answers && Object.keys(answers).length > 0) {
+            AI_DATA = answers;
+            CACHED_RESULTS = formatQuizResults(AI_DATA, cleanedQuestionsJson);
+            GM_setValue(`${quizId}`, { "hash": hash, answers: answers });
+            instantHighlight();
+            return AI_DATA;
+        } else {
+            console.warn("AI returned empty answers object.");
             return null;
         }
     }

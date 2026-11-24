@@ -10,18 +10,18 @@
         const path = card.querySelector('.shield path');
         const statusText = card.querySelector('#protection-status-display');
         if (isActive) {
-            svg.style.setProperty('fill', '#39be44');
+            svg.style.setProperty('fill', 'var(--theme-accent)');
             path.setAttribute('d', SHIELD_PATHS.true);
             if (statusText) {
                 statusText.textContent = 'Safe';
-                statusText.style.color = '#39be44';
+                statusText.style.color = 'var(--theme-accent)';
             }
         } else {
-            svg.style.setProperty('fill', '#e53935');
+            svg.style.setProperty('fill', 'var(--theme-danger)');
             path.setAttribute('d', SHIELD_PATHS.false);
             if (statusText) {
                 statusText.textContent = 'Not protected';
-                statusText.style.color = '#e53935';
+                statusText.style.color = 'var(--theme-danger)';
             }
         }
     }

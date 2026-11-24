@@ -8,7 +8,9 @@
 
             if (mainBody) {
                 html = document.documentElement;
-                html.style.setProperty('--color-picked-user', '#4579f2');
+                const initialSavedColor = localStorage.getItem("ansColor") || '#39be44';
+                html.style.setProperty('--theme-accent', initialSavedColor);
+                html.style.setProperty('--color-picked-user', initialSavedColor);
                 html.style.setProperty('--color-highlight', 'currentColor');
             } else {
                 console.warn("Could not access the iframe");
@@ -87,7 +89,7 @@
                             const val = item.querySelector('.answer-val-text')?.textContent || '';
                             if (val && navigator.clipboard) {
                                 navigator.clipboard.writeText(val).then(() => {
-                                    showNotification("Copied answer to clipboard!", "#39be44");
+                                    showNotification("Copied answer to clipboard!");
                                 }).catch(() => {});
                             }
                         }
@@ -149,6 +151,7 @@
             const closeApikey = shadow.querySelector('#close-apikey');
             const apikeyMenu = shadow.querySelector('.apikey_menu');
             const btnAnswers = shadow.querySelector('#btn-answers');
+            const btnHardcodedQa = shadow.querySelector('#btn-hardcoded-qa');
             const closeAnswers = shadow.querySelector('#close-answers');
             const answersMenu = shadow.querySelector('.answers_menu');
 
@@ -173,7 +176,13 @@
             const toggleMenu = (open) => setPanelState(settingsMenu, open, configBtn);
             const toggleTerms = (open) => setPanelState(termsMenu, open, configBtn);
             const toggleApikey = (open) => setPanelState(apikeyMenu, open, apikeyBtn);
-            const toggleAnswers = (open) => setPanelState(answersMenu, open, btnAnswers);
+            const toggleAnswers = (open, triggerEl = btnAnswers) => {
+                setPanelState(answersMenu, open, triggerEl);
+                if (!open) {
+                    btnAnswers?.classList.remove('active');
+                    btnHardcodedQa?.classList.remove('active');
+                }
+            };
 
             let isDragging = false;
             let isPointerDown = false;
@@ -193,7 +202,7 @@
 
             function updateMenuDirection() {
                 if (!main) return;
-                const pillH = toolbarPill ? (toolbarPill.offsetHeight || 240) : 240;
+                const pillH = toolbarPill ? (toolbarPill.offsetHeight || 280) : 280;
                 const shouldOpenBelow = (currentY !== null && currentY < (pillH + 16));
                 main.classList.toggle('open-below', shouldOpenBelow);
             }
@@ -256,7 +265,7 @@
                 );
                 if (interactive) return;
 
-                const draggable = targetEl.closest('.drag-handle, .toolbar-pill, .trigger-wrap');
+                const draggable = targetEl.closest('.toolbar-pill, .trigger-wrap');
                 if (!draggable) return;
 
                 isPointerDown = true;
@@ -362,9 +371,7 @@
             const main = shadow.querySelector('.main');
             const toggleMenuBtn = shadow.querySelector('#toggle-menu-btn');
             const toolbarPill = shadow.querySelector('#toolbar-pill');
-            const toolbarDragHandle = shadow.querySelector('#toolbar-drag-handle');
             toggleMenuBtn?.addEventListener('pointerdown', onPointerDown);
-            toolbarDragHandle?.addEventListener('pointerdown', onPointerDown);
             toolbarPill?.addEventListener('pointerdown', onPointerDown);
             let idleTimer = null;
             let pillTransitionTimer = null;
@@ -377,6 +384,7 @@
                 configBtn?.classList.remove('active');
                 apikeyBtn?.classList.remove('active');
                 btnAnswers?.classList.remove('active');
+                btnHardcodedQa?.classList.remove('active');
             }
 
             function setMainOpen(open) {
@@ -476,11 +484,12 @@
             }
 
             function repositionOpenPanels() {
+                const activeAnswersTrigger = btnHardcodedQa?.classList.contains('active') ? btnHardcodedQa : btnAnswers;
                 const panelMap = [
                     { panel: settingsMenu, trigger: configBtn },
                     { panel: termsMenu, trigger: configBtn },
                     { panel: apikeyMenu, trigger: apikeyBtn },
-                    { panel: answersMenu, trigger: btnAnswers },
+                    { panel: answersMenu, trigger: activeAnswersTrigger },
                 ];
                 panelMap.forEach(({ panel, trigger }) => {
                     if (panel && panel.classList.contains('open')) {
@@ -644,11 +653,11 @@
 
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = "Official answers applied!";
-                        quizStatusMenu.style.color = "#39be44";
+                        quizStatusMenu.style.color = "var(--theme-accent)";
                     }
 
                     instantHighlight();
-                    showNotification("Official answers applied!", "#39be44");
+                    showNotification("Official answers applied!");
                     return;
                 }
 
@@ -691,17 +700,17 @@
                 }
 
                 if (!CLEANED_QUESTIONS || Object.keys(CLEANED_QUESTIONS).length === 0) {
-                    showNotification("No question data found in memory or on screen", "#af4c4c");
+                    showNotification("No question data found in memory or on screen", "var(--theme-danger, #af4c4c)");
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = "No quiz data";
-                        quizStatusMenu.style.color = "#af4c4c";
+                        quizStatusMenu.style.color = "var(--theme-danger, #af4c4c)";
                     }
                     return;
                 }
 
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = "Re-solving quiz with AI...";
-                    quizStatusMenu.style.color = "#FFA500";
+                    quizStatusMenu.style.color = "var(--theme-warning, #FFA500)";
                 }
 
                 try {
@@ -716,7 +725,7 @@
 
                         if (quizStatusMenu) {
                             quizStatusMenu.innerText = "Answers updated!";
-                            quizStatusMenu.style.color = "#39be44";
+                            quizStatusMenu.style.color = "var(--theme-accent)";
                         }
 
                         instantHighlight();
@@ -724,16 +733,16 @@
                     } else {
                         if (quizStatusMenu) {
                             quizStatusMenu.innerText = "Re-solve failed";
-                            quizStatusMenu.style.color = "#af4c4c";
+                            quizStatusMenu.style.color = "var(--theme-danger, #af4c4c)";
                         }
                     }
                 } catch (e) {
                     console.error("Live re-solve failed:", e);
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = "Re-solve error";
-                        quizStatusMenu.style.color = "#af4c4c";
+                        quizStatusMenu.style.color = "var(--theme-danger, #af4c4c)";
                     }
-                    showNotification("Re-solve failed: " + (e.message || e), "#af4c4c");
+                    showNotification("Re-solve failed: " + (e.message || e), "var(--theme-danger, #af4c4c)");
                 }
             });
 
@@ -762,9 +771,35 @@
                 e.stopPropagation();
                 if (!main.classList.contains('menu-open')) setMainOpen(true);
                 const wasOpen = answersMenu?.classList.contains('open');
+                const wasActive = btnAnswers.classList.contains('active');
                 closeAllSubmenus();
-                if (!wasOpen) {
-                    toggleAnswers(true);
+                if (!wasOpen || !wasActive) {
+                    if (OFFICIAL_CACHED_RESULTS) {
+                        CACHED_RESULTS = OFFICIAL_CACHED_RESULTS;
+                    }
+                    if (typeof renderAnswersList === 'function') {
+                        renderAnswersList(CACHED_RESULTS || {}, "OFFICIAL");
+                    }
+                    toggleAnswers(true, btnAnswers);
+                }
+                resetIdleTimer();
+            });
+            btnHardcodedQa?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!main.classList.contains('menu-open')) setMainOpen(true);
+                const wasOpen = answersMenu?.classList.contains('open');
+                const wasActive = btnHardcodedQa.classList.contains('active');
+                closeAllSubmenus();
+                if (!wasOpen || !wasActive) {
+                    if (CACHED_RESULTS && CACHED_RESULTS !== HARDCODED_QA) {
+                        OFFICIAL_CACHED_RESULTS = CACHED_RESULTS;
+                    }
+                    CACHED_RESULTS = HARDCODED_QA;
+                    if (typeof renderAnswersList === 'function') {
+                        renderAnswersList(HARDCODED_QA, "CAPSTONE");
+                    }
+                    toggleAnswers(true, btnHardcodedQa);
+                    showNotification("Capstone Q&A loaded", "var(--secondary-color, #4579f5)");
                 }
                 resetIdleTimer();
             });
@@ -775,11 +810,17 @@
             });
 
             function UpdateAnsColor() {
-                html.style.setProperty('--color-picked-user', `${colorPicker.value}`);
-                localStorage.setItem("ansColor", colorPicker.value);
+                const val = colorPicker.value || '#39be44';
+                [html, document.documentElement, shadow?.host].forEach(target => {
+                    if (target?.style) {
+                        target.style.setProperty('--theme-accent', val);
+                        target.style.setProperty('--color-picked-user', val);
+                    }
+                });
+                localStorage.setItem("ansColor", val);
             }
 
-            const ansColorSaved = localStorage.getItem("ansColor") || '#4579f2';
+            const ansColorSaved = localStorage.getItem("ansColor") || '#39be44';
             colorPicker.value = ansColorSaved;
             UpdateAnsColor();
             colorPicker.oninput = UpdateAnsColor;
@@ -802,7 +843,7 @@
                 updateEyeIcon();
                 toggleAnswersEn();
                 if (answersVisible) instantHighlight();
-                showNotification(answersVisible ? "Answers: Visible" : "Answers: Hidden", "#4579f2");
+                showNotification(answersVisible ? "Answers: Visible" : "Answers: Hidden");
             });
             const toggleAnsSub = shadow.querySelector('.subtle-answer-text');
             const toggleAnsDark = shadow.querySelector('#dark-mode input[type="checkbox"]');
@@ -818,28 +859,91 @@
                 });
             }
 
-            const delayDisplay = shadow.querySelector('#delay-val-display');
-            const btnDecreaseDelay = shadow.querySelector('#delay-decrease');
-            const btnIncreaseDelay = shadow.querySelector('#delay-increase');
+            function bindStepper({
+                inputEl,
+                btnDec,
+                btnInc,
+                getValue,
+                setValue,
+                min,
+                max,
+                step = 1,
+                unit = '',
+                onChange
+            }) {
+                function render() {
+                    if (inputEl) {
+                        inputEl.value = `${getValue()}${unit}`;
+                    }
+                }
 
-            function updateDelayDisplay() {
-                if (delayDisplay) delayDisplay.textContent = `${AUTO_CLICK_DELAY}ms`;
-                GM_setValue("autoClickDelay", AUTO_CLICK_DELAY);
+                function applyValue(rawVal, notify = false) {
+                    let num = parseFloat(String(rawVal).replace(/[^0-9.-]/g, ''));
+                    if (isNaN(num)) num = getValue();
+                    num = Math.max(min, Math.min(max, num));
+                    setValue(num);
+                    render();
+                    if (typeof onChange === 'function') {
+                        onChange(num, notify);
+                    }
+                }
+
+                render();
+
+                btnDec?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    applyValue(getValue() - step, true);
+                });
+
+                btnInc?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    applyValue(getValue() + step, true);
+                });
+
+                if (inputEl) {
+                    inputEl.addEventListener('focus', () => {
+                        inputEl.select();
+                    });
+
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            inputEl.blur();
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            applyValue(getValue() + step, true);
+                        } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            applyValue(getValue() - step, true);
+                        }
+                    });
+
+                    inputEl.addEventListener('change', () => {
+                        applyValue(inputEl.value, true);
+                    });
+
+                    inputEl.addEventListener('blur', () => {
+                        applyValue(inputEl.value, false);
+                    });
+                }
             }
 
-            if (delayDisplay) updateDelayDisplay();
-
-            btnDecreaseDelay?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                AUTO_CLICK_DELAY = Math.max(100, AUTO_CLICK_DELAY - 100);
-                updateDelayDisplay();
+            // Click Delay Stepper
+            bindStepper({
+                inputEl: shadow.querySelector('#delay-val-input'),
+                btnDec: shadow.querySelector('#delay-decrease'),
+                btnInc: shadow.querySelector('#delay-increase'),
+                getValue: () => AUTO_CLICK_DELAY,
+                setValue: (v) => {
+                    AUTO_CLICK_DELAY = v;
+                    GM_setValue("autoClickDelay", AUTO_CLICK_DELAY);
+                },
+                min: 100,
+                max: 10000,
+                step: 100,
+                unit: 'ms'
             });
 
-            btnIncreaseDelay?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                AUTO_CLICK_DELAY = Math.min(10000, AUTO_CLICK_DELAY + 100);
-                updateDelayDisplay();
-            });
             const toggleNotif = shadow.querySelector('#toggle-notifications');
             if (toggleNotif) {
                 toggleNotif.checked = NOTIFICATIONS_ENABLED;
@@ -847,6 +951,156 @@
                     NOTIFICATIONS_ENABLED = e.target.checked;
                     GM_setValue("notificationsEnabled", NOTIFICATIONS_ENABLED);
                     if (NOTIFICATIONS_ENABLED) showNotification("Notifications enabled");
+                });
+            }
+
+            // Settings Tabs navigation
+            const tabBtns = shadow.querySelectorAll('.settings-tab-btn');
+            const tabPanes = shadow.querySelectorAll('.settings-tab-pane');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const targetTab = btn.getAttribute('data-tab');
+                    tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+                    tabPanes.forEach(pane => {
+                        pane.classList.toggle('active', pane.id === `pane-${targetTab}`);
+                    });
+                });
+            });
+
+            // Notification Color Customization
+            const notifColorPicker = shadow.querySelector('#notif-color-picker');
+            if (notifColorPicker) {
+                notifColorPicker.value = NOTIFICATION_COLOR || '#39be44';
+                notifColorPicker.addEventListener('input', (e) => {
+                    NOTIFICATION_COLOR = e.target.value;
+                    GM_setValue("notificationColor", NOTIFICATION_COLOR);
+                });
+                notifColorPicker.addEventListener('change', () => {
+                    showNotification("Notification color updated!", NOTIFICATION_COLOR);
+                });
+            }
+
+            // Notification Font Size Stepper
+            bindStepper({
+                inputEl: shadow.querySelector('#notif-font-input'),
+                btnDec: shadow.querySelector('#notif-font-decrease'),
+                btnInc: shadow.querySelector('#notif-font-increase'),
+                getValue: () => NOTIFICATION_FONT_SIZE,
+                setValue: (v) => {
+                    NOTIFICATION_FONT_SIZE = v;
+                    GM_setValue("notificationFontSize", NOTIFICATION_FONT_SIZE);
+                },
+                min: 11,
+                max: 24,
+                step: 1,
+                unit: 'px',
+                onChange: (v, notify) => {
+                    if (notify) showNotification("Notification font resized");
+                }
+            });
+
+            // Answer Font Size Stepper
+            bindStepper({
+                inputEl: shadow.querySelector('#ans-font-input'),
+                btnDec: shadow.querySelector('#ans-font-decrease'),
+                btnInc: shadow.querySelector('#ans-font-increase'),
+                getValue: () => ANSWER_FONT_SIZE,
+                setValue: (v) => {
+                    ANSWER_FONT_SIZE = v;
+                    GM_setValue("answerFontSize", ANSWER_FONT_SIZE);
+                    document.documentElement.style.setProperty('--answer-font-size', `${ANSWER_FONT_SIZE}px`);
+                    document.querySelectorAll('.subtle-answer-text').forEach(el => {
+                        el.style.fontSize = `${ANSWER_FONT_SIZE}px`;
+                    });
+                },
+                min: 10,
+                max: 24,
+                step: 1,
+                unit: 'px'
+            });
+
+            // Gray Scale Opacity Stepper
+            bindStepper({
+                inputEl: shadow.querySelector('#opacity-val-input'),
+                btnDec: shadow.querySelector('#opacity-decrease'),
+                btnInc: shadow.querySelector('#opacity-increase'),
+                getValue: () => GRAYSCALE_OPACITY,
+                setValue: (v) => {
+                    GRAYSCALE_OPACITY = v;
+                    GM_setValue("grayscaleOpacity", GRAYSCALE_OPACITY);
+                    if (typeof instantHighlight === 'function') instantHighlight();
+                },
+                min: 10,
+                max: 90,
+                step: 5,
+                unit: '%',
+                onChange: () => {
+                    if (typeof instantHighlight === 'function') instantHighlight();
+                }
+            });
+
+            // Multiple Choice Mode & Sub-settings (Cursor & Opacity)
+            const mcqModeSelect = shadow.querySelector('#mcq-mode-select');
+            const mcqCursorSetting = shadow.querySelector('#mcq-cursor-setting');
+            const mcqOpacitySetting = shadow.querySelector('#mcq-opacity-setting');
+            const mcqCursorSelect = shadow.querySelector('#mcq-cursor-select');
+
+            function updateMcqModeVisibility() {
+                const mode = mcqModeSelect ? mcqModeSelect.value : MCQ_MODE;
+                if (mcqCursorSetting) {
+                    mcqCursorSetting.style.display = mode === 'cursor' ? '' : 'none';
+                }
+                if (mcqOpacitySetting) {
+                    mcqOpacitySetting.style.display = mode === 'grayscale' ? '' : 'none';
+                }
+            }
+
+            if (mcqModeSelect) {
+                mcqModeSelect.value = MCQ_MODE || 'cursor';
+                updateMcqModeVisibility();
+                mcqModeSelect.addEventListener('change', (e) => {
+                    MCQ_MODE = e.target.value;
+                    GM_setValue("mcqMode", MCQ_MODE);
+                    updateMcqModeVisibility();
+                    if (typeof instantHighlight === 'function') instantHighlight();
+                    const modeLabels = {
+                        cursor: "Cursor Design",
+                        grayscale: "Gray Scale",
+                        checkmark: "Checkmark"
+                    };
+                    showNotification(`MCQ Mode: ${modeLabels[MCQ_MODE] || MCQ_MODE}`);
+                });
+            }
+
+            if (mcqCursorSelect) {
+                mcqCursorSelect.value = MCQ_CURSOR || 'not-allowed';
+                mcqCursorSelect.addEventListener('change', (e) => {
+                    MCQ_CURSOR = e.target.value;
+                    GM_setValue("mcqCursor", MCQ_CURSOR);
+                    if (typeof instantHighlight === 'function') instantHighlight();
+                    showNotification(`Cursor design: ${MCQ_CURSOR}`);
+                });
+            }
+
+            // Typed Answer Display Mode
+            const typedAnswerModeSelect = shadow.querySelector('#typed-answer-mode-select');
+            if (typedAnswerModeSelect) {
+                typedAnswerModeSelect.value = TYPED_ANSWER_MODE || 'visible';
+                typedAnswerModeSelect.addEventListener('change', (e) => {
+                    TYPED_ANSWER_MODE = e.target.value;
+                    GM_setValue("typedAnswerMode", TYPED_ANSWER_MODE);
+                    // Re-render any existing answer overlay
+                    document.querySelectorAll('.subtle-answer-text').forEach(el => el.remove());
+                    if (typeof instantHighlight === 'function') instantHighlight();
+                    const modeLabels = {
+                        visible:     'Visible Box',
+                        placeholder: 'Placeholder Only',
+                        hover:       'Hover to Reveal',
+                        watermark:   'Watermark',
+                        autofill:    'Auto-Fill & Hide'
+                    };
+                    showNotification(`Typed Answer Mode: ${modeLabels[TYPED_ANSWER_MODE] || TYPED_ANSWER_MODE}`);
                 });
             }
 
@@ -916,7 +1170,7 @@
                         toggleAns.checked = !toggleAns.checked;
                         toggleAnswersEn();
                         if (toggleAns.checked) instantHighlight();
-                        showNotification(toggleAns.checked ? "Answers: Visible" : "Answers: Hidden", "#4579f2");
+                        showNotification(toggleAns.checked ? "Answers: Visible" : "Answers: Hidden");
                     }
                 }
             }, true);
@@ -1000,7 +1254,7 @@
 
             initThemeObserver();
 
-            // Parallax effect removed — not applicable to pill toolbar buttons
+            // Parallax effect removed: not applicable to pill toolbar buttons
 
             const testApiBtn = shadow.querySelector('#test-api-btn');
             const apiStatusDot = shadow.querySelector('#api-status-dot');
@@ -1145,6 +1399,20 @@
             el.style.display = isAnsVisible ? 'block' : 'none';
             el.style.opacity = isAnsVisible ? '1' : '0';
         });
+        if (!isAnsVisible) {
+            document.querySelectorAll('.ans-stealth-disabled').forEach(el => {
+                el.classList.remove('ans-stealth-disabled');
+                el.style.removeProperty('--stealth-cursor');
+                el.style.removeProperty('cursor');
+                el.style.removeProperty('opacity');
+                el.style.removeProperty('filter');
+                el.style.removeProperty('pointer-events');
+                el.querySelectorAll('*').forEach(child => {
+                    child.style.removeProperty('cursor');
+                    child.style.removeProperty('pointer-events');
+                });
+            });
+        }
     }
 
             function changeColorMode() {
