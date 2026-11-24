@@ -1,15 +1,15 @@
-# Wayground Script
+# Youtube Enhancer
 
 Violentmonkey userscript that adds answer assistance, focus/anti-cheat protection and
 copy/paste restoration to Wayground (formerly Quizizz).
 
-Source lives in `src/` as small files. `Wayground Script.user.js` in the repo root is
+Source lives in `src/` as small files. `Youtube Enhancer.user.js` in the repo root is
 **generated** — it is the single-file artifact you install and upload to Greasyfork.
 
 ## Commands
 
 ```bash
-npm run build     # rebuild "Wayground Script.user.js" from src/
+npm run build     # rebuild "Youtube Enhancer.user.js" from src/
 npm run watch     # rebuild on every save
 npm run verify    # rebuild + syntax check
 ```
@@ -18,26 +18,26 @@ No dependencies. Node 18+ only.
 
 ## Layout
 
-| File | Lines | Role |
-|---|---:|---|
-| `src/header.txt` | 23 | Userscript metadata block. **Single source of truth** for `@grant`, `@connect`, `@match`, version. |
-| `src/core/state.js` | 39 | All shared mutable state (`API_KEY`, `QUIZ_DATA`, `ANTI_CHEAT`, …) + the URL regexes. |
-| `src/core/xhr-intercept.js` | 165 | Patches `XMLHttpRequest` to read/rewrite join + attempt responses. |
-| `src/core/fetch-quiz-id.js` | 36 | Resolves a room hash to a quiz id. |
-| `src/ui/ui.css` | 778 | The whole shadow-DOM stylesheet. Plain CSS — full editor highlighting. |
-| `src/ui/ui.html` | 228 | The whole shadow-DOM markup. |
-| `src/ui/ui-controller.js` | 729 | `toLoad()`: creates the shadow host, injects CSS+HTML, queries elements, wires every menu/button, then boots on `DOMContentLoaded`. |
-| `src/features/protection.js` | 28 | Shield UI state (`SHIELD_PATHS`, `updateProtectionUI`). |
-| `src/ai/fetch-quiz.js` | 48 | Fetches raw quiz JSON; `getShadowEl`, `getSelectedProvider`. |
-| `src/ai/solver.js` | 197 | `startQuizSolver`, `processQuizAi` — the solve pipeline. |
-| `src/ai/normalize.js` | 156 | `stripHtml`, `normalizeText`, `cleanQuizData`, `formatQuizResults`. |
-| `src/ai/providers/groq.js` | 97 | Groq provider. |
-| `src/ai/providers/gpt.js` | 57 | OpenAI provider. |
-| `src/ai/providers/gemini.js` | 59 | Gemini provider. |
-| `src/ui/toast.js` | 55 | `showNotification`. |
-| `src/features/quiz-hash.js` | 70 | Content keys, hashing, saved-result formatting. |
-| `src/features/answers.js` | 125 | `fetchQuizAnswers` — official answer retrieval. |
-| `src/features/highlight.js` | 321 | Answer highlighting engine + `MutationObserver` + polling interval. |
+| File                         | Lines | Role                                                                                                                                |
+| ---------------------------- | ----: | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/header.txt`             |    23 | Userscript metadata block. **Single source of truth** for `@grant`, `@connect`, `@match`, version.                                  |
+| `src/core/state.js`          |    39 | All shared mutable state (`API_KEY`, `QUIZ_DATA`, `ANTI_CHEAT`, …) + the URL regexes.                                               |
+| `src/core/xhr-intercept.js`  |   165 | Patches `XMLHttpRequest` to read/rewrite join + attempt responses.                                                                  |
+| `src/core/fetch-quiz-id.js`  |    36 | Resolves a room hash to a quiz id.                                                                                                  |
+| `src/ui/ui.css`              |   778 | The whole shadow-DOM stylesheet. Plain CSS — full editor highlighting.                                                              |
+| `src/ui/ui.html`             |   228 | The whole shadow-DOM markup.                                                                                                        |
+| `src/ui/ui-controller.js`    |   729 | `toLoad()`: creates the shadow host, injects CSS+HTML, queries elements, wires every menu/button, then boots on `DOMContentLoaded`. |
+| `src/features/protection.js` |    28 | Shield UI state (`SHIELD_PATHS`, `updateProtectionUI`).                                                                             |
+| `src/ai/fetch-quiz.js`       |    48 | Fetches raw quiz JSON; `getShadowEl`, `getSelectedProvider`.                                                                        |
+| `src/ai/solver.js`           |   197 | `startQuizSolver`, `processQuizAi` — the solve pipeline.                                                                            |
+| `src/ai/normalize.js`        |   156 | `stripHtml`, `normalizeText`, `cleanQuizData`, `formatQuizResults`.                                                                 |
+| `src/ai/providers/groq.js`   |    97 | Groq provider.                                                                                                                      |
+| `src/ai/providers/gpt.js`    |    57 | OpenAI provider.                                                                                                                    |
+| `src/ai/providers/gemini.js` |    59 | Gemini provider.                                                                                                                    |
+| `src/ui/toast.js`            |    55 | `showNotification`.                                                                                                                 |
+| `src/features/quiz-hash.js`  |    70 | Content keys, hashing, saved-result formatting.                                                                                     |
+| `src/features/answers.js`    |   125 | `fetchQuizAnswers` — official answer retrieval.                                                                                     |
+| `src/features/highlight.js`  |   321 | Answer highlighting engine + `MutationObserver` + polling interval.                                                                 |
 
 ## Why not ES modules
 
@@ -69,7 +69,7 @@ Two consequences:
 
 ## Publishing
 
-Upload the built `Wayground Script.user.js` (root of this repo) to Greasyfork.
+Upload the built `Youtube Enhancer.user.js` (root of this repo) to Greasyfork.
 `@downloadURL`/`@updateURL` in `src/header.txt` already point at script 602640.
 Do not hand-edit the built file — the next build overwrites it.
 
@@ -80,5 +80,5 @@ endings, no trailing newline). That is how the split was proven safe. After a pu
 refactor, this should print nothing:
 
 ```bash
-npm run build && git diff --exit-code -- "Wayground Script.user.js"
+npm run build && git diff --exit-code -- "Youtube Enhancer.user.js"
 ```

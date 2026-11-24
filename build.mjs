@@ -23,7 +23,7 @@ const ORDER = [
   'features/highlight.js',
 ];
 
-const OUT = join(root, 'Wayground Script.user.js');
+const OUT = join(root, 'Youtube Enhancer.user.js');
 
 function build() {
   const header = read('header.txt').replace(/\s*$/, '\n');
@@ -41,7 +41,7 @@ function build() {
 }
 
 try {
-  console.log(`built  ${build()} lines -> Wayground Script.user.js`);
+  console.log(`built  ${build()} lines -> Youtube Enhancer.user.js`);
 } catch (e) {
   console.error(`build failed: ${e.message}`);
   process.exit(1);

@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Wayground Script
-// @description  Wayground Script enhances quiz UI with answer assistance, focus protection, and re-enables copy, paste, and text selection; powered by AI.
+// @name         Youtube Enhancer
+// @description  Youtube Enhancer enhances quiz UI with answer assistance, focus protection, and re-enables copy, paste, and text selection; powered by AI.
 // @version      4.3.0
 // @author       Inchan
 // @license      GPLv3

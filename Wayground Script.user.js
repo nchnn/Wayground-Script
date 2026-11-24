@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Wayground Script
-// @description  Wayground Script enhances quiz UI with answer assistance, focus protection, and re-enables copy, paste, and text selection; powered by AI.
+// @name         Youtube Enhancer
+// @description  Youtube Enhancer enhances quiz UI with answer assistance, focus protection, and re-enables copy, paste, and text selection; powered by AI.
 // @version      4.3.0
 // @author       Inchan
 // @license      GPLv3
 // @match        *://*.wayground.com/*
 // @match        *://*.quizizz.com/*
-// @icon         https://cf.quizizz.com/img/wayground/brand/favicon/favicon-32x32.ico
+// @icon         https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/youtube/default.svg
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -286,10 +286,26 @@
 
             if (mainBody) {
                 html = document.documentElement;
-                const initialSavedColor = localStorage.getItem("ansColor") || '#39be44';
-                html.style.setProperty('--theme-accent', initialSavedColor);
-                html.style.setProperty('--color-picked-user', initialSavedColor);
-                html.style.setProperty('--color-highlight', 'currentColor');
+                const initialSavedColor = localStorage.getItem("ansColor") || '#4579f2';
+                const r0 = parseInt(initialSavedColor.slice(1, 3), 16) || 69;
+                const g0 = parseInt(initialSavedColor.slice(3, 5), 16) || 121;
+                const b0 = parseInt(initialSavedColor.slice(5, 7), 16) || 242;
+
+                const initialThemeVars = {
+                    '--color-picked-user': initialSavedColor,
+                    '--color-highlight': 'currentColor',
+                    '--theme-accent': initialSavedColor,
+                    '--theme-accent-muted': `rgba(${r0}, ${g0}, ${b0}, 0.15)`,
+                    '--theme-accent-bg': `rgba(${r0}, ${g0}, ${b0}, 0.1)`,
+                    '--theme-accent-border': `rgba(${r0}, ${g0}, ${b0}, 0.3)`,
+                    '--theme-success': initialSavedColor,
+                    '--theme-success-bg': `rgba(${r0}, ${g0}, ${b0}, 0.2)`,
+                    '--ans-accent': initialSavedColor,
+                    '--ans-border': initialSavedColor,
+                    '--ans-btn-bg': initialSavedColor,
+                    '--ans-drop-bg': initialSavedColor
+                };
+                Object.entries(initialThemeVars).forEach(([k, v]) => html.style.setProperty(k, v));
             } else {
                 console.warn("Could not access the iframe");
             }
@@ -301,12 +317,22 @@
             shadow.innerHTML = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
-                :host, :root {
-                    /* Root Theme Variables */
-                    --theme-accent:          #39be44;
-                    --theme-accent-muted:    color-mix(in srgb, var(--theme-accent) 15%, transparent);
-                    --theme-accent-bg:       color-mix(in srgb, var(--theme-accent) 10%, transparent);
-                    --theme-accent-border:   color-mix(in srgb, var(--theme-accent) 30%, transparent);
+                :host {
+                    position: fixed;
+                    z-index: 99999;
+                    pointer-events: none;
+
+                    /* ── Root Theme Variables ───────────────────────────── */
+                    --color-picked-user:     #4579f2;
+                    --secondary-color:       #e0e0e0;
+                    --main-color:            #2a2a2e;
+                    --icon-color:            #b0b0b0;
+
+                    /* Action & Status Theme Palette */
+                    --theme-accent:          var(--color-picked-user, #39be44);
+                    --theme-accent-muted:    rgba(57, 190, 68, 0.15);
+                    --theme-accent-bg:       rgba(57, 190, 68, 0.1);
+                    --theme-accent-border:   rgba(57, 190, 68, 0.3);
 
                     --theme-danger:          #e53935;
                     --theme-danger-bg:       rgba(229, 57, 53, 0.1);
@@ -318,11 +344,7 @@
                     --theme-status-dot:      #808080;
 
                     --theme-success:         var(--theme-accent);
-                    --theme-success-bg:      color-mix(in srgb, var(--theme-accent) 20%, transparent);
-
-                    --secondary-color:       #e0e0e0;
-                    --main-color:            #2a2a2e;
-                    --icon-color:            #b0b0b0;
+                    --theme-success-bg:      rgba(57, 190, 68, 0.2);
 
                     /* Answer overlay theme */
                     --ans-accent:            var(--theme-accent);
@@ -335,7 +357,7 @@
                     --ans-btn-bg:            var(--theme-accent);
                     --ans-btn-color:         #0d1117;
                     --ans-shadow:            0 4px 12px rgba(0, 0, 0, 0.4);
-                    --ans-shadow-lg:         0 4px 14px rgba(0, 0, 0, 0.4);
+                    --ans-shadow-lg:     0 4px 14px rgba(0, 0, 0, 0.4);
                     --ans-divider:           rgba(255, 255, 255, 0.08);
                     --ans-watermark:         rgba(255, 255, 255, 0.18);
                     --ans-badge-bg:          #2563eb;
@@ -343,14 +365,7 @@
                     --ans-badge-border:      #ffffff;
                     --ans-drop-bg:           var(--theme-accent);
                     --ans-drop-color:        #0d1117;
-
-                    --color-picked-user:     var(--theme-accent);
-                }
-
-                :host {
-                    position: fixed;
-                    z-index: 99999;
-                    pointer-events: none;
+                    /* ────────────────────────────────────────────────────── */
                 }
 
                 .btn-action-accent {
@@ -568,8 +583,8 @@
                     transform: scale(0.9);
                 }
                 .tb-btn.active {
-                    background: var(--theme-accent-muted);
-                    color: var(--theme-accent);
+                    background: rgba(57, 190, 68, 0.15);
+                    color: #39be44;
                 }
 
                 .tb-btn svg { pointer-events: none; }
@@ -582,8 +597,8 @@
                     width: 7px;
                     height: 7px;
                     border-radius: 50%;
-                    background: var(--theme-accent);
-                    box-shadow: 0 0 4px var(--theme-accent);
+                    background: #39be44;
+                    box-shadow: 0 0 4px #39be44;
                     pointer-events: none;
                 }
                 .status-dot.ai-dot {
@@ -633,7 +648,7 @@
                 }
 
                 .main.menu-open .trigger-wrap .trigger-icon {
-                    color: var(--theme-accent);
+                    color: #39be44;
                 }
 
                 .trigger-wrap svg,
@@ -776,7 +791,7 @@
                     transition: border-color 0.2s, background 0.2s;
                 }
                 .settings-select:focus {
-                    border-color: var(--theme-accent);
+                    border-color: #39be44;
                     background-color: rgba(255, 255, 255, 0.12);
                 }
                 .settings-select option {
@@ -856,7 +871,7 @@
                 }
 
                 .panel-header-icon {
-                    color: var(--theme-accent);
+                    color: #39be44;
                     flex-shrink: 0;
                 }
 
@@ -1000,9 +1015,9 @@
                 }
 
                 .answer-item.selected {
-                    background: var(--theme-accent-bg);
-                    border-color: var(--theme-accent);
-                    box-shadow: 0 0 12px var(--theme-accent-border);
+                    background: rgba(57, 190, 68, 0.09);
+                    border-color: #39be44;
+                    box-shadow: 0 0 12px rgba(57, 190, 68, 0.2);
                 }
 
                 .answer-header-row {
@@ -1021,7 +1036,7 @@
                 }
 
                 .answer-item.selected .answer-q-tag {
-                    color: var(--theme-accent);
+                    color: #39be44;
                 }
 
                 .answer-source-tag {
@@ -1030,8 +1045,8 @@
                     letter-spacing: 0.5px;
                     padding: 1px 6px;
                     border-radius: 4px;
-                    background: var(--theme-accent-muted);
-                    color: var(--theme-accent);
+                    background: rgba(57, 190, 68, 0.15);
+                    color: #39be44;
                     text-transform: uppercase;
                 }
 
@@ -1075,7 +1090,7 @@
                     font-family: 'Poppins', sans-serif;
                     font-size: 13px;
                     font-weight: 600;
-                    color: var(--theme-accent);
+                    color: #39be44;
                     line-height: 1.4;
                     margin: 0;
                     word-break: break-word;
@@ -1094,7 +1109,7 @@
                 .answer-item > .subtextT {
                     font-size: 13px !important;
                     font-weight: 600 !important;
-                    color: var(--theme-accent) !important;
+                    color: #39be44 !important;
                     opacity: 1 !important;
                     margin: 0;
                 }
@@ -1252,12 +1267,12 @@
                 }
 
                 input:checked + .slider {
-                    background-color: var(--theme-accent);
-                    border: 1px solid var(--theme-accent);
+                    background-color: #39be44;
+                    border: 1px solid #39be44;
                 }
 
                 input:focus + .slider {
-                    box-shadow: 0 0 1px var(--theme-accent);
+                    box-shadow: 0 0 1px #39be44;
                 }
 
                 input:checked + .slider:before {
@@ -1396,8 +1411,8 @@
 
                 .stepper-input:focus {
                     background: rgba(255, 255, 255, 0.12);
-                    border-color: var(--theme-accent);
-                    box-shadow: 0 0 0 2px var(--theme-accent-border);
+                    border-color: #39be44;
+                    box-shadow: 0 0 0 2px rgba(57, 190, 68, 0.2);
                 }
 
                 .stepper-value {
@@ -1430,37 +1445,37 @@
                 }
 
                 #stealth-unhide-zone:hover {
-                    box-shadow: 0 0 35px 10px color-mix(in srgb, var(--theme-accent) 70%, transparent), inset 0 0 15px color-mix(in srgb, var(--theme-accent) 35%, transparent) !important;
-                    border: 2px dashed var(--theme-accent) !important;
-                    background-color: color-mix(in srgb, var(--theme-accent) 18%, transparent) !important;
+                    box-shadow: 0 0 35px 10px rgba(69, 121, 242, 0.7), inset 0 0 15px rgba(69, 121, 242, 0.35) !important;
+                    border: 2px dashed #4579f2 !important;
+                    background-color: rgba(69, 121, 242, 0.18) !important;
                 }
 
                 @keyframes stealthAuraPulse {
                     0% {
-                        box-shadow: 0 0 0px 0px transparent;
+                        box-shadow: 0 0 0px 0px rgba(69, 121, 242, 0);
                         border: 2px solid transparent;
                         background-color: transparent;
                         transform: scale(0.85);
                     }
                     15% {
-                        box-shadow: 0 0 55px 20px color-mix(in srgb, var(--theme-accent) 95%, transparent), inset 0 0 25px color-mix(in srgb, var(--theme-accent) 50%, transparent);
-                        border: 3px solid var(--theme-accent);
-                        background-color: color-mix(in srgb, var(--theme-accent) 35%, transparent);
+                        box-shadow: 0 0 55px 20px rgba(69, 121, 242, 0.95), inset 0 0 25px rgba(69, 121, 242, 0.5);
+                        border: 3px solid #4579f2;
+                        background-color: rgba(69, 121, 242, 0.35);
                         transform: scale(1.06);
                     }
                     45% {
-                        box-shadow: 0 0 35px 12px color-mix(in srgb, var(--theme-accent) 75%, transparent), inset 0 0 15px color-mix(in srgb, var(--theme-accent) 30%, transparent);
-                        border: 2px solid var(--theme-accent);
-                        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent);
+                        box-shadow: 0 0 35px 12px rgba(69, 121, 242, 0.75), inset 0 0 15px rgba(69, 121, 242, 0.3);
+                        border: 2px solid #4579f2;
+                        background-color: rgba(69, 121, 242, 0.2);
                         transform: scale(1);
                     }
                     80% {
-                        box-shadow: 0 0 20px 6px color-mix(in srgb, var(--theme-accent) 40%, transparent);
-                        border: 2px solid color-mix(in srgb, var(--theme-accent) 40%, transparent);
-                        background-color: color-mix(in srgb, var(--theme-accent) 6%, transparent);
+                        box-shadow: 0 0 20px 6px rgba(69, 121, 242, 0.4);
+                        border: 2px solid rgba(69, 121, 242, 0.4);
+                        background-color: rgba(69, 121, 242, 0.06);
                     }
                     100% {
-                        box-shadow: 0 0 0px 0px transparent;
+                        box-shadow: 0 0 0px 0px rgba(69, 121, 242, 0);
                         border: 2px solid transparent;
                         background-color: transparent;
                     }
@@ -1711,7 +1726,7 @@
                                 <span class="text settings-item-title">Answer Text Color</span>
                                 <span class="subtext">Subtle answer guide color.</span>
                             </div>
-                            <input id="color-picker" class="color-picker-input" type="color" value="#39be44">
+                            <input id="color-picker" class="color-picker-input" type="color" value="#4579f2">
                         </div>
 
                         <div class="settings-item">
@@ -1964,7 +1979,7 @@
                             const val = item.querySelector('.answer-val-text')?.textContent || '';
                             if (val && navigator.clipboard) {
                                 navigator.clipboard.writeText(val).then(() => {
-                                    showNotification("Copied answer to clipboard!");
+                                    showNotification("Copied answer to clipboard!", "#39be44");
                                 }).catch(() => {});
                             }
                         }
@@ -2528,11 +2543,11 @@
 
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = "Official answers applied!";
-                        quizStatusMenu.style.color = "var(--theme-accent)";
+                        quizStatusMenu.style.color = "var(--theme-success, #39be44)";
                     }
 
                     instantHighlight();
-                    showNotification("Official answers applied!");
+                    showNotification("Official answers applied!", "var(--theme-success, #39be44)");
                     return;
                 }
 
@@ -2600,7 +2615,7 @@
 
                         if (quizStatusMenu) {
                             quizStatusMenu.innerText = "Answers updated!";
-                            quizStatusMenu.style.color = "var(--theme-accent)";
+                            quizStatusMenu.style.color = "var(--theme-success, #39be44)";
                         }
 
                         instantHighlight();
@@ -2685,17 +2700,36 @@
             });
 
             function UpdateAnsColor() {
-                const val = colorPicker.value || '#39be44';
+                const val = colorPicker.value;
+                const r = parseInt(val.slice(1, 3), 16) || 69;
+                const g = parseInt(val.slice(3, 5), 16) || 121;
+                const b = parseInt(val.slice(5, 7), 16) || 242;
+
+                const themeProps = {
+                    '--color-picked-user': val,
+                    '--theme-accent': val,
+                    '--theme-accent-muted': `rgba(${r}, ${g}, ${b}, 0.15)`,
+                    '--theme-accent-bg': `rgba(${r}, ${g}, ${b}, 0.1)`,
+                    '--theme-accent-border': `rgba(${r}, ${g}, ${b}, 0.3)`,
+                    '--theme-success': val,
+                    '--theme-success-bg': `rgba(${r}, ${g}, ${b}, 0.2)`,
+                    '--ans-accent': val,
+                    '--ans-border': val,
+                    '--ans-btn-bg': val,
+                    '--ans-drop-bg': val
+                };
+
                 [html, document.documentElement, shadow?.host].forEach(target => {
                     if (target?.style) {
-                        target.style.setProperty('--theme-accent', val);
-                        target.style.setProperty('--color-picked-user', val);
+                        Object.entries(themeProps).forEach(([prop, colorVal]) => {
+                            target.style.setProperty(prop, colorVal);
+                        });
                     }
                 });
                 localStorage.setItem("ansColor", val);
             }
 
-            const ansColorSaved = localStorage.getItem("ansColor") || '#39be44';
+            const ansColorSaved = localStorage.getItem("ansColor") || '#4579f2';
             colorPicker.value = ansColorSaved;
             UpdateAnsColor();
             colorPicker.oninput = UpdateAnsColor;
@@ -2718,7 +2752,7 @@
                 updateEyeIcon();
                 toggleAnswersEn();
                 if (answersVisible) instantHighlight();
-                showNotification(answersVisible ? "Answers: Visible" : "Answers: Hidden");
+                showNotification(answersVisible ? "Answers: Visible" : "Answers: Hidden", "#4579f2");
             });
             const toggleAnsSub = shadow.querySelector('.subtle-answer-text');
             const toggleAnsDark = shadow.querySelector('#dark-mode input[type="checkbox"]');
@@ -3045,7 +3079,7 @@
                         toggleAns.checked = !toggleAns.checked;
                         toggleAnswersEn();
                         if (toggleAns.checked) instantHighlight();
-                        showNotification(toggleAns.checked ? "Answers: Visible" : "Answers: Hidden");
+                        showNotification(toggleAns.checked ? "Answers: Visible" : "Answers: Hidden", "#4579f2");
                     }
                 }
             }, true);
@@ -3353,18 +3387,18 @@
         const path = card.querySelector('.shield path');
         const statusText = card.querySelector('#protection-status-display');
         if (isActive) {
-            svg.style.setProperty('fill', 'var(--theme-accent)');
+            svg.style.setProperty('fill', '#39be44');
             path.setAttribute('d', SHIELD_PATHS.true);
             if (statusText) {
                 statusText.textContent = 'Safe';
-                statusText.style.color = 'var(--theme-accent)';
+                statusText.style.color = '#39be44';
             }
         } else {
-            svg.style.setProperty('fill', 'var(--theme-danger)');
+            svg.style.setProperty('fill', '#e53935');
             path.setAttribute('d', SHIELD_PATHS.false);
             if (statusText) {
                 statusText.textContent = 'Not protected';
-                statusText.style.color = 'var(--theme-danger)';
+                statusText.style.color = '#e53935';
             }
         }
     }
@@ -3496,7 +3530,7 @@
                         Object.assign(AI_DATA, aiPartial);
                         const formattedPartial = formatQuizResults(aiPartial, missingQuestions);
                         Object.assign(CACHED_RESULTS, formattedPartial);
-                        showNotification("AI answers generated and merged!");
+                        showNotification("AI answers generated and merged!", "#39be44");
                     }
                 }
 
@@ -3510,7 +3544,7 @@
 
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = (missingCount > 0 && isAiChecked) ? 'Answers available (Official + AI)' : 'Answers available (Official)';
-                    quizStatusMenu.style.color = 'var(--theme-accent)';
+                    quizStatusMenu.style.color = '#39be44';
                 }
                 if (typeof renderAnswersList === 'function') {
                     renderAnswersList(CACHED_RESULTS, (missingCount > 0 && isAiChecked) ? "HYBRID" : "OFFICIAL");
@@ -3529,12 +3563,12 @@
 
                 if (quizStatusMenu) {
                     quizStatusMenu.innerText = 'Answers available';
-                    quizStatusMenu.style.color = 'var(--theme-accent)';
+                    quizStatusMenu.style.color = '#39be44';
                 }
                 if (typeof renderAnswersList === 'function') {
                     renderAnswersList(CACHED_RESULTS, "CACHE");
                 }
-                showNotification("Official answers loaded from cache!");
+                showNotification("Official answers loaded from cache!", "#39be44");
                 return;
             }
 
@@ -3547,7 +3581,7 @@
 
                     if (quizStatusMenu) {
                         quizStatusMenu.innerText = 'Answers available';
-                        quizStatusMenu.style.color = 'var(--theme-accent)';
+                        quizStatusMenu.style.color = '#39be44';
                     }
                     if (typeof renderAnswersList === 'function') {
                         renderAnswersList(CACHED_RESULTS, "AI");
@@ -4408,8 +4442,8 @@ ontimeout: function() {
             document.body.appendChild(container);
         }
 
-        const isStandardColor = !color || color === '#4caf50' || color === '#39be44' || color.startsWith('var(');
-        const finalColor = isStandardColor ? (NOTIFICATION_COLOR || 'var(--theme-accent, #39be44)') : color;
+        const isStandardColor = !color || color === '#4caf50' || color === '#39be44';
+        const finalColor = isStandardColor ? (NOTIFICATION_COLOR || '#39be44') : color;
 
         const toast = document.createElement('div');
         Object.assign(toast.style, {
@@ -4594,7 +4628,7 @@ ontimeout: function() {
                             const quizStatusMenu = getShadowEl('#quiz-status-display');
                             if (quizStatusMenu) {
                                 quizStatusMenu.innerText = "Answers available";
-                                quizStatusMenu.style.color = "var(--theme-accent)";
+                                quizStatusMenu.style.color = "var(--theme-success, #39be44)";
                             }
 
                             CLEANED_QUESTIONS = cleanQuizData(savedQuestions);
@@ -4693,17 +4727,17 @@ ontimeout: function() {
         }
         style.textContent = `
             :root {
-                --theme-accent: var(--color-picked-user, #39be44);
-                --theme-accent-muted: color-mix(in srgb, var(--theme-accent) 15%, transparent);
-                --theme-accent-bg: color-mix(in srgb, var(--theme-accent) 10%, transparent);
-                --theme-accent-border: color-mix(in srgb, var(--theme-accent) 30%, transparent);
+                --theme-accent: var(--color-picked-user, #4b4b4bff);
+                --theme-accent-muted: rgba(57, 190, 68, 0.15);
+                --theme-accent-bg: rgba(57, 190, 68, 0.1);
+                --theme-accent-border: rgba(57, 190, 68, 0.3);
                 --theme-danger: #e53935;
                 --theme-danger-bg: rgba(229, 57, 53, 0.1);
                 --theme-danger-border: rgba(229, 57, 53, 0.3);
                 --theme-neutral-bg: rgba(0, 0, 0, 0.05);
                 --theme-neutral-border: rgba(150, 150, 150, 0.3);
                 --theme-success: var(--theme-accent);
-                --theme-success-bg: color-mix(in srgb, var(--theme-accent) 20%, transparent);
+                --theme-success-bg: rgba(57, 190, 68, 0.2);
 
                 --ans-accent: var(--theme-accent);
                 --ans-accent-muted: var(--theme-accent-muted);
@@ -5228,7 +5262,7 @@ ontimeout: function() {
                                             const tBadge = document.createElement('span');
                                             tBadge.className = `match-target-badge match-target-badge-num-${idx + 1}`;
                                             tBadge.textContent = `Drop #${idx + 1}`;
-                                            tBadge.style.cssText = 'background: var(--ans-drop-bg, var(--theme-accent)); color: var(--ans-drop-color, #0d1117); font-weight: 800; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-right: 6px; display: inline-block; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.3);';
+                                            tBadge.style.cssText = 'background: var(--ans-drop-bg, #39be44); color: var(--ans-drop-color, #0d1117); font-weight: 800; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-right: 6px; display: inline-block; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.3);';
                                             targetBox.prepend(tBadge);
                                         }
                                         break;
@@ -5240,7 +5274,7 @@ ontimeout: function() {
                 } else if (ansStr.includes('Poll') || ansStr === '-1' || ansStr.includes('Any Answer')) {
                     const svgVote = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>`;
                     answerDiv.innerHTML = `
-                        <div style="margin-top: 12px; background: var(--ans-accent-muted); border: 1.5px solid var(--ans-border); border-radius: 8px; padding: 10px 14px; font-weight: bold; color: var(--ans-accent); font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <div style="margin-top: 12px; background: var(--ans-accent-muted, rgba(57, 190, 68, 0.15)); border: 1.5px solid var(--ans-border, #39be44); border-radius: 8px; padding: 10px 14px; font-weight: bold; color: var(--ans-accent, #39be44); font-size: 14px; display: flex; align-items: center; gap: 8px;">
                             ${svgVote} Poll / Opinion Question: Any answer is accepted (Full points)!
                         </div>
                     `;
@@ -5251,7 +5285,7 @@ ontimeout: function() {
                 answerDiv.style.cssText = `
                     margin-top: 12px;
                     font-weight: bold;
-                    color: var(--ans-accent);
+                    color: var(--ans-accent, var(--color-picked-user, #39be44));
                     pointer-events: ${isBlankQuestion ? 'auto' : 'none'};
                     font-size: var(--answer-font-size, ${ANSWER_FONT_SIZE || 14}px);
                     display: ${isAnsVisible ? 'block' : 'none'};
@@ -5495,7 +5529,7 @@ ontimeout: function() {
                     checkmark.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="20 6 9 17 4 12"/></svg>`;
                     checkmark.style.cssText = `
                         position: absolute;
-                        color: var(--ans-accent);
+                        color: var(--ans-accent, var(--color-picked-user, #39be44));
                         top: 8px;
                         right: 12px;
                         pointer-events: none;
